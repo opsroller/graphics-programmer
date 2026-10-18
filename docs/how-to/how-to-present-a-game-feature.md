@@ -46,7 +46,7 @@ leaving the run unverified. With no benchmark at all, build one first with
 ### Present a backdrop
 
 For a non-interactive background element driven by time rather than game
-events (a sky, water, an animated wall), pass `kind: "backdrop"`:
+events (a sky, distant scenery, an animated wall), pass `kind: "backdrop"`:
 
 ```
 args: { feature: "animated sky", kind: "backdrop", targets: ["low-tier phone", "desktop"] }
