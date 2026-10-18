@@ -4,7 +4,8 @@ export const meta = {
   description: 'Decide the rendering path and the per-tier rendering features (lighting, shadows, reflections, volumetrics, post, anti-aliasing, upscaling) for a set of quality tiers: list the options, evaluate each on the weakest target in parallel, decide, check the frame budget adds up, and document the decision. Called by a technical-artist visual target or on its own. args: { question: "what must be decided, e.g. which GI and reflections each tier gets", tiers?: "tier names, devices and frame-time targets, or where they are written", wants?: "the look the visual target asks for, per tier" }',
   phases: [
     { title: 'Plan', detail: 'tiers, budgets, candidate options per feature, docs plan (compass)' },
-    { title: 'Evaluate', detail: 'one read-only agent per option: support per target, cost in ms, look, fallback' },
+    { title: 'Evaluate', detail: 'one read-only agent per option: support per target, estimated cost, look, fallback' },
+    { title: 'Measure', detail: 'one agent captures each option on the weakest devices, one at a time' },
     { title: 'Decide', detail: 'renderer path and feature matrix per tier, with constraints for art' },
     { title: 'Check', detail: 'budgets add up per tier, every feature has a fallback, costs evidenced' },
     { title: 'Docs', detail: 'decision record and reference in the same PR, then verify one kind per page' },
@@ -180,12 +181,45 @@ const EVAL = {
 const evals = await parallel(options.map((o) => () => agent(
   `You are a graphics-programmer evaluating one option for "${question}": ${o.name} (${o.feature}): ${o.what}.\n` +
   `Engine: ${plan.engine}. Tiers: ${plan.tiers}. Measurable on target: ${plan.measurable}.\n` +
-  'Follow frame-budget-profiling and platform-scaling. Check platform support in the engine\'s documentation. If you can measure, build a small probe scene in a scratch location outside the project tree and capture its cost in ms on each tier\'s weakest device or stand-in (median and p95); otherwise give a sourced estimate and label it "estimate". ' +
+  'Follow frame-budget-profiling and platform-scaling. Check platform support in the engine\'s documentation. Do not run captures on a target device: other options are being evaluated at the same time and measurements would interfere. Give a sourced estimate of the cost in ms per tier and label it "estimate"; on-device measurement happens afterwards, one option at a time. ' +
   'Describe what it does to the image and what it asks of art content. Do NOT modify project files.',
   { schema: EVAL, phase: 'Evaluate', label: `evaluate:${o.name}` },
 )))
 const evaluated = options.map((o, i) => evals[i] || { option: o.name, unverified: true })
 const unevaluated = evaluated.filter((e) => e.unverified).map((e) => e.option)
+
+// ---------- Measure (one agent, one capture at a time) ----------
+if (plan.measurable) {
+  phase('Measure')
+  const MEASURE = {
+    type: 'object',
+    properties: {
+      measurements: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            option: { type: 'string' },
+            costMs: { type: 'string', description: 'GPU and CPU ms per tier, median and p95' },
+            evidence: { type: 'string', description: 'device, build, scene and capture' },
+          },
+          required: ['option', 'costMs', 'evidence'],
+        },
+      },
+    },
+    required: ['measurements'],
+  }
+  const measured = await agent(
+    `You are the graphics-programmer measuring the options for "${question}". Engine: ${plan.engine}. Tiers: ${plan.tiers}.\n` +
+    `Options and their estimates:\n${JSON.stringify(evaluated.filter((e) => !e.unverified), null, 2)}\n` +
+    'Follow frame-budget-profiling. For each option in turn, never two at once on the same device, build a small probe scene in a scratch location outside the project tree and capture its cost in ms on each tier\'s weakest device or stand-in in a release-like build (median and p95). Report one measurement per option you captured; leave out any you could not, and their estimates stand. Do NOT modify project files.',
+    { schema: MEASURE, phase: 'Measure', label: 'measure' },
+  )
+  for (const m of (measured && measured.measurements) || []) {
+    const e = evaluated.find((x) => x.option === m.option)
+    if (e) Object.assign(e, { costMs: m.costMs, evidence: m.evidence })
+  }
+}
 
 // ---------- Decide ----------
 phase('Decide')

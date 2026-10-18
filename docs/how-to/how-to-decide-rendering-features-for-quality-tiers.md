@@ -28,8 +28,9 @@ technical artist's visual target hands the question to you.
    budget does not add up even after one revision: drop a feature on the
    tier named, or agree a lower target with the technical artist.
 5. **Replace estimates with measurements** before content production
-   scales up: any feature whose `evidence` says `estimate` gets a capture on
-   its weakest device.
+   scales up. The workflow measures every option it can, one at a time, when
+   a target device is reachable; any feature whose `evidence` still says
+   `estimate` gets a capture on its weakest device.
 6. **Hand the decision back.** Give the technical artist the `decision`
    object. They resume their visual target with it as the `renderer` arg,
    and the `constraints` become rules for content.

@@ -23,7 +23,8 @@ Missing `question` returns the usage string.
 | Phase | Agents | Edits files | Does |
 |---|---|---|---|
 | Plan | 1 | no | Tiers with frame budgets (ms), engine rendering paths per platform, up to eight candidate options, whether costs can be measured, docs plan |
-| Evaluate | 1 per option, parallel | no (probe scenes only outside the project tree) | Platform support, cost in ms per tier (or a labelled estimate), effect on the image, what it asks of art |
+| Evaluate | 1 per option, parallel | no | Platform support, estimated cost in ms per tier (labelled "estimate"), effect on the image, what it asks of art; no on-device captures, so parallel runs cannot interfere |
+| Measure | 1, only when Plan says the targets are measurable | no (probe scenes only outside the project tree) | Captures each option on each tier's weakest device one at a time (median, p95) and replaces its estimate; options it could not capture keep their estimate |
 | Decide | 1 (2 if the check fails) | no | Rendering path per tier and a feature matrix: technique per tier, cost, evidence, fallback; constraints for art |
 | Check | 1 (2 if it finds problems) | no | Sums feature costs per tier against the frame budget; every feature has a fallback and evidence |
 | Docs | 2 | yes | Writes the planned Diataxis pages, then checks one kind per page and that the numbers match |
@@ -64,4 +65,4 @@ Run modes v1. Besides its own args, the workflow takes the optional `run` arg de
 and `run.from` with `run.results` resumes a stopped run. Without `run`, the workflow and its outputs are as above.
 See [how to run a workflow inline](https://github.com/opsroller/engineering-practices/blob/main/docs/how-to/how-to-run-a-workflow-inline.md).
 
-Step labels, for `run.only` and `run.results`: `plan`, `evaluate:<option>` (one per option named in the plan), `decide:1`, `check:1`, and when the first check finds problems `decide:2`, `check:2`; then `docs`, `docs check`.
+Step labels, for `run.only` and `run.results`: `plan`, `evaluate:<option>` (one per option named in the plan), `measure`, `decide:1`, `check:1`, and when the first check finds problems `decide:2`, `check:2`; then `docs`, `docs check`.
