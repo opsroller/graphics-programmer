@@ -1,0 +1,14 @@
+{
+  "name": "graphics-programmer",
+  "version": "0.1.0",
+  "description": "Graphics programmer: builds what the player sees in real time: scenes, camera, lighting, animation driven by game events, input, and rendering performance.",
+  "author": {
+    "name": "opsroller"
+  },
+  "repository": "https://github.com/opsroller/graphics-programmer",
+  "license": "MIT",
+  "keywords": [
+    "role",
+    "job-function"
+  ]
+}
