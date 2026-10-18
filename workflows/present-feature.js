@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 export const meta = {
   name: 'present-feature',
-  description: 'Build the presentation for a game feature end to end: plan scene, camera, event-to-animation beats and input actions, implement them, check feel, frame time and input on each target in parallel, fix, document in the same PR, and push it as a handoff for engineering-practices deliver-package or land-pr. Use when a feature already has a design spec and logic events. args: { feature: "short name, e.g. item pickup", spec?: "path to the design spec", targets?: ["weakest supported phone", "desktop"] }',
+  description: 'Build the presentation for a game feature end to end: plan scene, camera, event-to-animation beats, input actions, look-dev frames, measurement and placeholder art, capture before frames, implement, capture after frames, check feel, input, readability (against the project\'s visual acceptance checks when it has them), look, art hookup and frame time on each target in parallel, fix, document in the same PR, and push it as a handoff for engineering-practices deliver-package or land-pr. Perf with no device can be deferred to a named benchmark or measurement package as a follow-up. Use when a feature already has a design spec and logic events. args: { feature: "short name, e.g. item pickup", spec?: "path to the design spec", targets?: ["weakest supported phone", "desktop"], capture?: true, perf?: { defer_to?: "<benchmark or measurement package that will measure it>", hook?: "<existing measurement command or scene>" } }',
   phases: [
-    { title: 'Plan', detail: 'presentation plan and docs plan (compass)' },
-    { title: 'Build', detail: 'one agent implements the plan' },
+    { title: 'Plan', detail: 'presentation plan, look-dev frames, measurement, placeholder art and docs plan (compass)' },
+    { title: 'Before', detail: 'capture the look-dev frames on the base commit (technical-artist lookdev-capture, headless-rendering)' },
+    { title: 'Build', detail: 'one agent implements the plan, placeholder art behind manifest keys' },
+    { title: 'Capture', detail: 'capture the same frames on the working tree, each verify round' },
     { title: 'Verify', detail: 'read-only checks per target and per concern, in parallel' },
     { title: 'Fix', detail: 'one agent applies fixes; at most two rounds' },
     { title: 'Docs', detail: 'write the planned Diataxis pages in the same PR' },
@@ -105,14 +107,27 @@ if (RUN.error) return RUN.error
 const RUN_OUT = await Promise.race([RUN.halted, (async (agent, phase, log) => {
 // --- run-modes v2 end (workflow body follows; close it with the tail line) ---
 
-const USAGE = 'usage: present-feature { feature: "short name", spec?: "path/to/spec.md", targets?: ["weakest supported phone", "desktop"] }'
+const USAGE = 'usage: present-feature { feature: "short name", spec?: "path/to/spec.md", targets?: ["weakest supported phone", "desktop"], capture?: true, perf?: { defer_to?: "<benchmark or measurement package>", hook?: "<existing measurement command or scene>" } }'
 if (!args || !args.feature) return USAGE
 const feature = args.feature
 const spec = args.spec ? `The design spec is at ${args.spec}.` : 'Find the design spec for this feature through the project profile; if none exists, stop and say so.'
 const targets = Array.isArray(args.targets) && args.targets.length ? args.targets : ['the weakest supported device in the project profile', 'desktop']
+const wantCapture = args.capture !== false
+const perfArg = args.perf && typeof args.perf === 'object' ? args.perf : {}
+const strings = (v) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string' && x.trim()).map(String) : [])
 
 const DOCS_FRAGMENT = 'Classify every user-visible change in this work with the Diataxis compass (action/cognition x study/work). For each, update or add exactly one page of that kind under the project\'s docs/<kind>/ (location per the project profile), keep each page to one kind, title it by the project pattern, and link to the related pages of the other kinds. Report pages touched and any change you left undocumented and why.'
 
+const PLACEHOLDER = {
+  type: 'object',
+  properties: {
+    key: { type: 'string', description: 'stable manifest key the code loads it by; final art keeps the key' },
+    path: { type: 'string', description: 'placeholder file path, named by the convention' },
+    manifest: { type: 'string', description: 'manifest or override file the key is registered in' },
+    stands_for: { type: 'string', description: 'the final art it stands for and what the code depends on: size, pivot, material slots, animation or marker names' },
+  },
+  required: ['key', 'path', 'manifest', 'stands_for'],
+}
 const PLAN = {
   type: 'object',
   properties: {
@@ -123,10 +138,40 @@ const PLAN = {
     inputActions: { type: 'array', items: { type: 'string' } },
     budget: { type: 'string', description: 'frame-time and sub-budget impact per target' },
     files: { type: 'array', items: { type: 'string' } },
+    lookdev: {
+      type: 'object',
+      properties: {
+        possible: { type: 'boolean' },
+        why: { type: 'string', description: 'why frames cannot be captured, when possible is false' },
+        frames: { type: 'array', items: { type: 'string' }, description: 'each "scene / camera / beat and frame / renderer or tier"' },
+        command: { type: 'string', description: 'the headless capture command, with size and frame' },
+        outDir: { type: 'string', description: 'where frames go, outside the repository unless the project says otherwise' },
+      },
+      required: ['possible'],
+    },
+    acceptance: {
+      type: 'object',
+      properties: {
+        exists: { type: 'boolean', description: 'true if the project has automated visual acceptance checks' },
+        command: { type: 'string', description: 'the command that runs them on frames' },
+        criteria: { type: 'array', items: { type: 'string' }, description: 'readability criteria from the visual target that apply to this feature' },
+      },
+      required: ['exists'],
+    },
+    measurement: {
+      type: 'object',
+      properties: {
+        hook: { type: 'string', description: 'existing benchmark scene, frame-time capture command or profiler markers the perf checks run; empty if none' },
+        newHooks: { type: 'array', items: { type: 'string' }, description: 'profiler markers or scoped timers this work adds around the feature' },
+        defer_to: { type: 'string', description: 'benchmark or measurement package (work package id or tool) that measures this feature on real targets; empty if none' },
+      },
+    },
+    placeholders: { type: 'array', items: PLACEHOLDER, description: 'one per visual asset whose final art does not exist yet' },
+    naming: { type: 'string', description: 'the placeholder naming convention used (project convention plus placeholder marker)' },
     docsPlan: { type: 'array', items: { type: 'string' }, description: 'each entry: kind + page path + what changes' },
     missing: { type: 'array', items: { type: 'string' }, description: 'contract gaps that block the work' },
   },
-  required: ['events', 'beats', 'files', 'docsPlan', 'missing'],
+  required: ['events', 'beats', 'files', 'lookdev', 'acceptance', 'placeholders', 'docsPlan', 'missing'],
 }
 const FINDINGS = {
   type: 'object',
@@ -134,48 +179,93 @@ const FINDINGS = {
     area: { type: 'string' },
     blockers: { type: 'array', items: { type: 'string' } },
     minor: { type: 'array', items: { type: 'string' } },
-    measured: { type: 'boolean', description: 'true if numbers came from a real run on the target, false if estimated' },
+    measured: { type: 'boolean', description: 'true if numbers or judgements came from a real run (a device for perf, rendered frames for look and readability), false if estimated' },
   },
   required: ['area', 'blockers', 'minor', 'measured'],
 }
+const FRAMES = { type: 'object', properties: { frames: { type: 'array', items: { type: 'string' }, description: 'each "path: what it shows, size, renderer and driver"' }, problems: { type: 'array', items: { type: 'string' } } }, required: ['frames'] }
 
 phase('Plan')
 const plan = await agent(
   `You are the graphics-programmer. Onboard first (engineering-practices project-onboarding). Plan the presentation of "${feature}". ${spec}
-Follow the graphics-programmer skills event-presentation (event contract, event-to-beat table), scene-composition, camera-systems and input-handling. Targets: ${targets.join('; ')}.
+Follow the graphics-programmer skills event-presentation (event contract, event-to-beat table), scene-composition, camera-systems, input-handling and frame-budget-profiling. Targets: ${targets.join('; ')}.
 List the logic events you will consume and any data they lack (put contract gaps in "missing"; never plan to read live logic state). List the files you will change.
+Look-dev frames${wantCapture ? '' : ' (capture is off for this run; set lookdev.possible false with why "capture: false")'}: plan them with the technical-artist lookdev-capture skill (what to frame and judge) and the graphics-programmer headless-rendering skill (getting frames out of a machine with no GPU or display). Frame the gameplay camera on the feature's key beats held at fixed times (for example the start, peak and settle of each beat), in the scene the feature plays in, on every renderer or quality tier the project ships. Give the capture command, size, frame and output directory. Set possible false with the reason only if the project or this machine cannot render after following headless-rendering.
+Visual acceptance: find the project's automated visual acceptance checks (its visual target, checks built with technical-artist calibrate-visual-checks or graphics-programmer build-measurement-tool) and the command that runs them on frames; list the readability criteria that apply to this feature. Set exists false if the project has none.
+Measurement: name an existing measurement hook the perf checks can run for this feature (benchmark scene, frame-time capture command, profiler markers), any markers or timers this work adds around the feature's update and draw, and the benchmark or measurement package that measures it on the real targets when no device is reachable here${perfArg.defer_to ? ` (the caller names "${perfArg.defer_to}")` : ''}${perfArg.hook ? `; the caller names the hook "${perfArg.hook}"` : ''}. Leave a field empty when none exists; never invent one.
+Placeholder art: for every visual asset the feature needs whose final art does not exist yet (meshes, textures, materials, effects, sprites), plan a placeholder. Register each under a stable key in the project's asset manifest (project profile; the technical-artist owns its format) or, if the project has none, in an override manifest next to the feature's presentation data that the code reads first. The code loads every visual asset by key, never by path, so final art replaces a placeholder by changing its file and manifest entry with no code change. Name placeholder files by the project's asset naming convention with a placeholder marker (fallback when the project has none: <key>.placeholder.<ext>). For each, say what the final art must keep for the code to work (size or bounds, pivot, material slots, animation or marker names). An empty list is fine when all art exists.
 Docs plan: ${DOCS_FRAGMENT} Here only plan: list each page (kind, path, change). Do not edit anything yet.`,
   { schema: PLAN, phase: 'Plan', label: 'plan' },
 )
 if (!plan) return 'blocked: planning failed (no plan returned)'
 if (plan.missing && plan.missing.length) return `blocked: the event contract is incomplete; ask the gameplay-programmer for:\n- ${plan.missing.join('\n- ')}`
 
+const look = plan.lookdev || { possible: false }
+const capturing = wantCapture && !!look.possible
+const acceptance = plan.acceptance || { exists: false }
+const measurement = plan.measurement || {}
+const hook = String(perfArg.hook || measurement.hook || '')
+const deferTo = String(perfArg.defer_to || measurement.defer_to || '')
+const placeholders = Array.isArray(plan.placeholders) ? plan.placeholders.filter((p) => p && p.key) : []
+const notes = []
+if (wantCapture && !look.possible) notes.push(`look-dev frames not captured: ${look.why || 'the plan found no way to render'}`)
+
+const captureBrief = (before) => `Capture the look-dev frames for "${feature}" ${before ? 'before the change' : 'after the change'}, following the technical-artist lookdev-capture skill (frames, determinism, verification) and the graphics-programmer headless-rendering skill (binary, software driver, virtual display): ${JSON.stringify(strings(look.frames))} with ${look.command || 'the project\'s headless render command'}, into ${look.outDir || 'a frames directory outside the repository'}. Name each file <scene>-<camera>-<beat>-<renderer or tier>-${before ? 'before' : 'after'}. ${before ? 'Render from the base commit (a separate worktree of the default branch) so the frames show the state before this work; where the feature does not exist there yet, capture the same scene and camera so the after frames show what it adds. ' : 'Render from the working tree with the same command, size, frame and driver as the before frames. '}Check every frame is the requested size and is not black, blank or captured before the scene settled; re-capture any that fail. Write a greyscale copy of each. Change no project files except the frames. Return the frame files with what each shows and the driver that rendered it, and anything you could not capture in problems.`
+
+let before = null
+if (capturing) {
+  phase('Before')
+  before = await agent(captureBrief(true), { schema: FRAMES, phase: 'Before', label: 'capture before' })
+  if (!before || !strings(before.frames).length) notes.push(`before frames missing: ${before ? strings(before.problems).join('; ') : 'capture step returned nothing'}`)
+}
+
 phase('Build')
 const built = await agent(
-  `You are the graphics-programmer. Implement this presentation plan for "${feature}" exactly, following the skills event-presentation, scene-composition, camera-systems and input-handling. Logic must never wait on animation; timings live in data; skip and reduced motion must give the same final state.
+  `You are the graphics-programmer. Implement this presentation plan for "${feature}" exactly, following the skills event-presentation, scene-composition, camera-systems, input-handling and frame-budget-profiling. Logic must never wait on animation; timings live in data; skip and reduced motion must give the same final state.
+Load every visual asset by its manifest key, never by path. Create each planned placeholder (simple, clearly temporary, with the bounds, pivot, slots and names the plan says final art must keep), name it by the convention "${plan.naming || '<key>.placeholder.<ext>'}", and register it in its manifest marked as a placeholder. Add the planned measurement markers or timers.
 Plan: ${JSON.stringify(plan)}
 Commit on the work-package branch following engineering-practices git-workflow. Return a short summary of files changed.`,
   { phase: 'Build', label: 'build' },
 )
 if (!built) return 'blocked: build agent returned nothing; no changes are confirmed'
 
-const checks = [
-  ['feel', 'Compare every beat\'s timing and easing with the feel targets in the spec; check skip, fast-forward and reduced motion leave the view equal to logic state. Skill: event-presentation.'],
-  ['input', 'Check every input action on every supported device family, including cancel, focus loss and disconnect; check touch target sizes and picking during camera motion. Skill: input-handling.'],
-  ['readability', 'Check the readable set at the smallest supported resolution and the narrowest and widest aspect ratios, inside safe areas, in grayscale. Skills: scene-composition, camera-systems.'],
-  ...targets.map((t) => [`perf: ${t}`, `Measure frame time (median, p95, p99) for the feature on ${t} in a release-like build against the project budget; if no device or build is available, estimate from the scene and code and set measured=false. Skill: frame-budget-profiling.`]),
-]
+const readabilityTask = (frames) => {
+  const base = 'Check the readable set at the smallest supported resolution and the narrowest and widest aspect ratios, inside safe areas, in grayscale. Skills: scene-composition, camera-systems.'
+  if (!frames.length && !wantCapture) return `${base} Capture is off for this run, so judge from the scene and code and set measured=true.`
+  if (!frames.length) return `${base} No look-dev frames were captured, so judge from the scene and code and set measured=false.`
+  const auto = acceptance.exists
+    ? `Run the project's visual acceptance checks (${acceptance.command || 'the command the project profile names'}) on these frames: ${JSON.stringify(frames)}. Report each failing criterion as a blocker with its frame, measured value and threshold; the check may write its report, but change no project files and never adjust a threshold. Then judge what the checks do not cover by eye.`
+    : `The project has no automated visual acceptance checks; judge by eye on these frames and their greyscale copies: ${JSON.stringify(frames)}, and say in minor that the criteria are unchecked by script.`
+  return `${base} ${auto} Criteria: ${JSON.stringify(strings(acceptance.criteria))}. Set measured=true. Skill: technical-artist visual-acceptance-checks.`
+}
+const perfTask = (t) => `Measure frame time (median, p95, p99) for the feature on ${t} in a release-like build against the project budget. ${hook ? `Use the measurement hook: ${hook}. ` : ''}Frame times from a software renderer or a container are not device numbers (headless-rendering skill): report them, but set measured=false. If no device or build is available, estimate from the scene and code, put the estimate in minor and set measured=false. Skill: frame-budget-profiling.`
 
 let round = 0
 let open = []
 let unverified = []
 let estimated = []
+let after = null
 while (true) {
+  let frames = []
+  if (capturing) {
+    phase('Capture')
+    after = await agent(captureBrief(false), { schema: FRAMES, phase: 'Capture', label: round ? `capture round ${round + 1}` : 'capture' })
+    frames = after ? strings(after.frames) : []
+  }
+  const checks = [
+    ['feel', 'Compare every beat\'s timing and easing with the feel targets in the spec; check skip, fast-forward and reduced motion leave the view equal to logic state. Skill: event-presentation.'],
+    ['input', 'Check every input action on every supported device family, including cancel, focus loss and disconnect; check touch target sizes and picking during camera motion. Skill: input-handling.'],
+    ['readability', readabilityTask(frames)],
+    ...(frames.length ? [['look', `Give an independent look review. Open every frame and its greyscale copy (technical-artist lookdev-capture skill, "Judge"). Before frames: ${JSON.stringify(before ? strings(before.frames) : [])}. After frames: ${JSON.stringify(frames)}. Compare before and after from the same camera; check each beat against the spec and the project's art direction and visual target: the feature reads at game speed, nothing washed out, too dark, blown out, noisy or aliased, and higher tiers add to the base look rather than change what reads. A software-rendered frame judges values and readability, not GPU-only features; say which those are in minor. Set measured=true.`]] : []),
+    ...(placeholders.length ? [['art hookup', `Check the placeholder art can be replaced without code changes. Placeholders: ${JSON.stringify(placeholders)}. Every visual asset of the feature is loaded by manifest key, never by path; every placeholder is registered in its manifest, marked as a placeholder and named by the convention "${plan.naming || '<key>.placeholder.<ext>'}"; what final art must keep (bounds, pivot, slots, names) is documented. Read the loading code; set measured=true.`]] : []),
+    ...targets.map((t) => [`perf: ${t}`, perfTask(t)]),
+  ]
   phase('Verify')
   const results = await parallel(checks.map(([area, task]) => () =>
     agent(`You are a graphics-programmer reviewer. Read only; do not edit any file. Feature: "${feature}". ${task} Return blockers (must fix before merge) and minor issues, each with file and concrete change.`,
       { schema: FINDINGS, phase: 'Verify', label: round ? `${area} round ${round + 1}` : area, independent: true }).then((r) => (r ? { ...r, area } : { area, crashed: true }))))
   unverified = results.filter((r) => r.crashed).map((r) => r.area)
+  if (capturing && !frames.length) unverified.push(`look: after frames missing (${after ? strings(after.problems).join('; ') || 'none returned' : 'capture step returned nothing'})`)
   open = results.filter((r) => !r.crashed).flatMap((r) => r.blockers.map((b) => `${r.area}: ${b}`))
   estimated = results.filter((r) => !r.crashed && r.measured === false).map((r) => r.area)
   if (estimated.length) log(`estimated, not measured: ${estimated.join(', ')}`)
@@ -183,18 +273,25 @@ while (true) {
   round += 1
   phase('Fix')
   const fixed = await agent(
-    `You are the graphics-programmer. Fix these blockers for "${feature}" in one pass, following the relevant skills, then commit:\n- ${open.join('\n- ')}`,
+    `You are the graphics-programmer. Fix these blockers for "${feature}" in one pass, following the relevant skills, then commit. Fix art by its manifest entry or placeholder, never by a hard-coded path; never change a visual acceptance threshold to pass:\n- ${open.join('\n- ')}`,
     { phase: 'Fix', label: `fix round ${round}` },
   )
   if (!fixed) return `blocked: fix agent returned nothing; open blockers:\n- ${open.join('\n- ')}`
 }
 if (open.length) return `blocked after ${round} fix rounds; open blockers:\n- ${open.join('\n- ')}${unverified.length ? `\nunverified: ${unverified.join(', ')}` : ''}`
 
+// A perf check estimated here is a follow-up when a named benchmark or
+// measurement package will measure it on the real target; without one it
+// stays unverified.
+const isPerf = (a) => a.startsWith('perf: ')
+const followUps = deferTo ? estimated.filter(isPerf).map((a) => `${a}: estimated here; measure on the target with ${deferTo}`) : []
+const notMeasured = estimated.filter((a) => !(deferTo && isPerf(a)))
+
 phase('Docs')
 const DOCS = { type: 'object', properties: { pages: { type: 'array', items: { type: 'string' } }, undocumented: { type: 'array', items: { type: 'string' } } }, required: ['pages'] }
 const docs = await agent(
   `You are the graphics-programmer. Write the documentation for "${feature}" in the same PR. Planned pages: ${JSON.stringify(plan.docsPlan)}.
-${DOCS_FRAGMENT} Commit the docs on the same branch. Return the page paths you touched and each change left undocumented with why.`,
+${DOCS_FRAGMENT}${placeholders.length ? ` Document the placeholder art in reference (key, placeholder path, manifest, what final art must keep) next to the feature's other reference, so the technical-artist can replace it: ${JSON.stringify(placeholders)}.` : ''}${after && strings(after.frames).length ? ` Where the project shows look-dev frames in its docs, use small compressed copies of the after frames, captioned with renderer or tier and driver: ${JSON.stringify(strings(after.frames))}.` : ''} Commit the docs on the same branch. Return the page paths you touched and each change left undocumented with why.`,
   { schema: DOCS, phase: 'Docs', label: 'docs' },
 )
 if (!docs) return 'blocked: docs agent returned nothing; the feature is not done without its docs'
@@ -202,7 +299,7 @@ if (!docs) return 'blocked: docs agent returned nothing; the feature is not done
 phase('Docs check')
 const DOCCHECK = { type: 'object', properties: { ok: { type: 'boolean' }, problems: { type: 'array', items: { type: 'string' } } }, required: ['ok', 'problems'] }
 const check = await agent(
-  `Review the docs pages touched for "${feature}" (read only). Check: each page holds one Diataxis kind only; nothing instructional in reference or explanation; how-to titles name a user goal and explanation titles read "About ..."; reference structure matches the code; pages link to the related pages of the other kinds; every user-visible change from this work is documented. Docs report: ${JSON.stringify(docs)}`,
+  `Review the docs pages touched for "${feature}" (read only; do not edit anything). Check: each page holds one Diataxis kind only; nothing instructional in reference or explanation; how-to titles name a user goal and explanation titles read "About ..."; reference structure matches the code; pages link to the related pages of the other kinds; every user-visible change from this work is documented${placeholders.length ? '; the placeholder art is listed with key, path, manifest and what final art must keep' : ''}. Docs report: ${JSON.stringify(docs)}`,
   { schema: DOCCHECK, phase: 'Docs check', label: 'docs check', independent: true },
 )
 if (!check) return `unverified: docs checker returned nothing. Build: ${built}\nDocs: ${JSON.stringify(docs)}`
@@ -211,26 +308,48 @@ if (!check.ok) return `blocked: docs check failed:\n- ${check.problems.join('\n-
 // The handoff is what engineering-practices deliver-package takes as
 // prior, so the presentation ships without being built again.
 phase('Handoff')
-const HANDOFF = { type: 'object', properties: { branch: { type: 'string' }, pr: { type: 'string' }, head_sha: { type: 'string' }, tests_pass: { type: 'boolean' }, problem: { type: 'string' } }, required: ['branch', 'tests_pass'] }
+const HANDOFF = { type: 'object', properties: { branch: { type: 'string' }, pr: { type: 'string' }, head_sha: { type: 'string' }, tests_pass: { type: 'boolean' }, recorded: { type: 'array', items: { type: 'string' }, description: 'where each perf follow-up was recorded' }, problem: { type: 'string' } }, required: ['branch', 'tests_pass'] }
 const pages = Array.isArray(docs.pages) ? docs.pages : []
 const hand = await agent(
-  `Hand off the presentation for "${feature}". If you are on the default branch, cut a Conventional branch (feat/<slug>) from the latest remote default branch; otherwise stay on the current feature branch. Commit everything this run wrote (the presentation code, scene, camera, animation and input data, fixes and their tests, and the docs pages ${pages.join(', ') || 'as written'}) as Conventional Commits, and push. Run the project's checks that apply (test suite, headless or scene checks and the docs link check the project profile names) on the pushed head. Do not open, mark ready or merge a PR: the engineering-practices workflow named in the result does that. Follow the engineering-practices git-workflow skill. Return the branch, any open PR, the head commit SHA, whether the checks pass on that head, and the problem if not.`,
+  `Hand off the presentation for "${feature}". If you are on the default branch, cut a Conventional branch (feat/<slug>) from the latest remote default branch; otherwise stay on the current feature branch. Commit everything this run wrote (the presentation code, scene, camera, animation and input data, placeholder art and manifest entries, measurement markers, fixes and their tests, and the docs pages ${pages.join(', ') || 'as written'}) as Conventional Commits, and push. Do not commit look-dev frames unless a docs page shows a small compressed copy. ${followUps.length ? `Record each perf follow-up where the project tracks follow-ups for ${deferTo} (its work-package row's notes, or the follow-up list or tracker the project profile names), in the same commits, and return where in recorded; if the project names no such place, record nothing and say so in problem without failing: ${JSON.stringify(followUps)}. ` : ''}Run the project's checks that apply (test suite, headless or scene checks, asset validator and the docs link check the project profile names) on the pushed head. Do not open, mark ready or merge a PR: the engineering-practices workflow named in the result does that. Follow the engineering-practices git-workflow skill. Return the branch, any open PR, the head commit SHA, whether the checks pass on that head, and the problem if not.`,
   { schema: HANDOFF, phase: 'Handoff', label: 'handoff' },
 )
 if (!hand || !hand.branch) return `blocked: handoff step returned nothing; the presentation for "${feature}" may not be committed or pushed${hand && hand.problem ? `: ${hand.problem}` : ''}`
 if (!hand.tests_pass) return `blocked: checks fail on ${hand.branch}${hand.head_sha ? ` at ${hand.head_sha}` : ''}: ${hand.problem || 'no details'}`
 
-const partial = unverified.length || estimated.length
-const summary = partial
-  ? `unverified: presentation for "${feature}" built and documented, but not fully verified.${unverified.length ? `\nchecks that returned nothing: ${unverified.join(', ')}` : ''}${estimated.length ? `\nestimated, not measured: ${estimated.join(', ')}` : ''}\nRerun the missing checks before marking it done.\nBuild: ${built}\nDocs: ${JSON.stringify(docs)}`
-  : `done: presentation for "${feature}" built, verified and documented.\nBuild: ${built}\nDocs: ${JSON.stringify(docs)}`
+const placeholderLines = placeholders.map((p) => `placeholder art: ${p.key} at ${p.path} in ${p.manifest}; final art must keep ${p.stands_for}`)
+const frames = { before: before ? strings(before.frames) : [], after: after ? strings(after.frames) : [] }
+const pushed = { branch: hand.branch, pr: hand.pr || '', head_sha: hand.head_sha || '' }
+const partial = unverified.length || notMeasured.length
+// An unverified run returns no handoff, so deliver-package cannot ship it
+// as if every check had passed; rerunning the missing checks gives one.
+if (partial) {
+  return {
+    status: 'unverified',
+    summary: `unverified: presentation for "${feature}" built, documented and pushed to ${hand.branch}, but not fully verified.${unverified.length ? `\nchecks that returned nothing: ${unverified.join(', ')}` : ''}${notMeasured.length ? `\nestimated, not measured: ${notMeasured.join(', ')}` : ''}\nNo handoff: rerun the missing checks before shipping.\nBuild: ${built}\nDocs: ${JSON.stringify(docs)}`,
+    build: built,
+    docs,
+    unverified,
+    estimated: notMeasured,
+    follow_ups: followUps,
+    placeholders,
+    frames,
+    pushed,
+    notes,
+    next: `rerun the checks listed (run.only with their labels and run.results from this run${notMeasured.some(isPerf) ? '; for perf with no device, pass perf.defer_to naming the benchmark or measurement package that will measure it, or build one with /graphics-programmer:build-measurement-tool' : ''}); the run that verifies them returns the handoff`,
+  }
+}
 return {
-  status: partial ? 'unverified' : 'done',
-  summary,
+  status: 'done',
+  summary: `done: presentation for "${feature}" built, verified and documented.${followUps.length ? `\nperf deferred to ${deferTo}: ${followUps.join('; ')}` : ''}${placeholders.length ? `\nplaceholder art for the technical-artist: ${placeholders.map((p) => p.key).join(', ')}` : ''}\nBuild: ${built}\nDocs: ${JSON.stringify(docs)}`,
   build: built,
   docs,
-  unverified,
-  estimated,
+  unverified: [],
+  estimated: [],
+  follow_ups: followUps,
+  placeholders,
+  frames,
+  notes,
   handoff: {
     from: 'graphics-programmer:present-feature',
     branch: hand.branch,
@@ -239,11 +358,14 @@ return {
     tests_pass: true,
     docs: pages,
     undocumented: Array.isArray(docs.undocumented) ? docs.undocumented : [],
+    follow_ups: followUps,
+    placeholders,
     notes: [
-      ...(unverified.length ? [`checks that returned nothing: ${unverified.join(', ')}`] : []),
-      ...(estimated.length ? [`estimated, not measured: ${estimated.join(', ')}`] : []),
+      ...followUps.map((f) => `follow-up: ${f}${strings(hand.recorded).length ? ` (recorded in ${strings(hand.recorded).join(', ')})` : ''}`),
+      ...placeholderLines,
+      ...notes,
     ],
   },
-  next: `${partial ? 'rerun the unverified or estimated checks first, then ' : ''}ship it without rebuilding: /engineering-practices:deliver-package { wp: "<the package>", prior: <this result> }; with no work package, /engineering-practices:land-pr { branch: "${hand.branch}" }`,
+  next: `${placeholders.length ? 'send the placeholder list to the technical-artist (engineering-practices peer-coordination) to replace through its manifest entries, e.g. with /technical-artist:asset-batch; ' : ''}${followUps.length && !strings(hand.recorded).length ? `record the perf follow-ups on ${deferTo}; ` : ''}ship it without rebuilding: /engineering-practices:deliver-package { wp: "<the package>", prior: <this result> }; with no work package, /engineering-practices:land-pr { branch: "${hand.branch}" }`,
 }
 })(RUN.agent, RUN.phase, RUN.log)]); return RUN.finish(RUN_OUT)

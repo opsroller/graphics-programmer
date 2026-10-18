@@ -78,7 +78,9 @@ game actions, inside a frame budget you can prove with measurements.
    contract from the gameplay programmer. Presentation follows both; it never
    invents rules.
 3. **Build the smallest readable version first** with placeholder art, on the
-   weakest target, then add polish only while the budget allows.
+   weakest target, then add polish only while the budget allows. Load every
+   visual asset by a manifest key, never a path, and name placeholders so
+   the technical artist can find and replace them with no code change.
 4. **Measure, do not guess.** Profile on real target hardware (or the
    project's agreed stand-in), in a release-like build, for long enough to see
    thermal behaviour. Report frame time in ms (median and a high percentile),

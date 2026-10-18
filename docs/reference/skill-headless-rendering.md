@@ -7,7 +7,7 @@
 | Type | Skill |
 | File | [`skills/headless-rendering/SKILL.md`](../../skills/headless-rendering/SKILL.md) |
 | Loaded when | use when the engine must draw real frames on a machine with no GPU or no display, such as a cloud container or CI runner - running a self-test, benchmark, capture or screenshot there, getting the engine binary, software Vulkan or OpenGL (Mesa lavapipe, llvmpipe), a virtual display (Xvfb), falling back to an OpenGL renderer, and knowing what frame times from a software renderer do and do not mean. |
-| Referenced by | [build-measurement-tool](workflow-build-measurement-tool.md), [implement-renderer-system](workflow-implement-renderer-system.md), [renderer-decision](workflow-renderer-decision.md), [feel-and-perf-check](workflow-feel-and-perf-check.md), [investigate-frame-time](workflow-investigate-frame-time.md) |
+| Referenced by | [build-measurement-tool](workflow-build-measurement-tool.md), [implement-renderer-system](workflow-implement-renderer-system.md), [renderer-decision](workflow-renderer-decision.md), [feel-and-perf-check](workflow-feel-and-perf-check.md), [investigate-frame-time](workflow-investigate-frame-time.md), [present-feature](workflow-present-feature.md) |
 
 ## Inputs
 

@@ -13,6 +13,10 @@ a feature whose design spec and logic events already exist, using the
 - The logic publishes the feature's events. If it does not, the workflow
   stops with a list of missing event fields; take that list to the
   gameplay-programmer.
+- The machine can render frames, with a GPU or headless (see the
+  [headless-rendering skill](../reference/skill-headless-rendering.md)).
+  If it cannot, the result is `unverified`; for a feature with no visual
+  change, pass `capture: false`.
 
 ## Run the workflow
 
@@ -26,18 +30,41 @@ args: { feature: "item pickup", spec: "docs/reference/specs/item-pickup.md", tar
 - If you omit `spec`, the agent looks for the spec through the project
   profile and stops if there is none.
 
+### Defer perf to a benchmark
+
+When no target device is reachable, name the benchmark or measurement
+package that will measure the feature, and the hook to run if one exists:
+
+```
+args: { feature: "item pickup", perf: { defer_to: "<benchmark work package>", hook: "<benchmark command>" } }
+```
+
+Estimated perf checks then become follow-ups on that package instead of
+leaving the run unverified. With no benchmark at all, build one first with
+[build-measurement-tool](how-to-build-a-benchmark-and-acceptance-checks.md).
+
 ## Read the result
 
 - `status: "done"`: the presentation is built, verified, documented and
-  pushed; `handoff` names the branch and head commit.
+  pushed; `handoff` names the branch and head commit. `frames` holds the
+  before and after look-dev frames.
+- `follow_ups`: perf checks deferred to the benchmark package. Check that
+  each is recorded on that package (the handoff step records them where
+  the project tracks follow-ups; `next` says if it could not).
+- `placeholders`: send the list (key, file, manifest, what final art must
+  keep) to the technical artist, who replaces each file and manifest entry
+  with no code change.
 - `blocked: the event contract is incomplete`: ask the gameplay-programmer
   for the listed fields, then run again.
 - `blocked after N fix rounds`: fix the listed blockers by hand or rerun
   after design changes.
-- `status: "unverified"` (or a result starting `unverified:`): a check returned nothing or a perf check was estimated
-  because no device was reachable. Rerun the listed checks, or measure on
-  the device, before merging (see
-  [How to fix a frame-time problem](how-to-fix-a-frame-time-problem.md)).
+- `status: "unverified"` (or a result starting `unverified:`): a check
+  returned nothing, frames were missing, or a check was estimated with
+  nothing to defer it to. There is no `handoff`; `pushed` names the branch.
+  Rerun the checks `next` lists with `run.only`, pass `perf.defer_to`, or
+  measure on the device (see
+  [How to fix a frame-time problem](how-to-fix-a-frame-time-problem.md));
+  the run that verifies them returns the handoff.
 
 ## Ship it
 

@@ -247,6 +247,19 @@ if (!handoff || !handoff.branch) return { status: 'blocked', reason: 'hand-off f
 if (!handoff.tests_pass) return { status: 'blocked', open: ['suite or self-test not green on the pushed head' + (handoff.problem ? ': ' + handoff.problem : '')], notes }
 
 const measured = check.measured || build.measured || ''
+const pushed = { branch: handoff.branch, pr: handoff.pr || '', head_sha: handoff.head_sha || '' }
+const handoffOut = {
+  from: 'graphics-programmer:implement-renderer-system',
+  branch: handoff.branch,
+  pr: handoff.pr || '',
+  head_sha: handoff.head_sha || '',
+  tests_pass: true,
+  docs: docs.pages || [],
+  undocumented: docs.undocumented || [],
+  non_original: strings(build.non_original),
+  notes,
+}
+
 return {
   status: unverified.length ? 'unverified' : 'done',
   cases: plan.cases.length,
@@ -258,18 +271,12 @@ return {
   docs: docs.pages,
   undocumented: docs.undocumented,
   notes,
-  handoff: {
-    from: 'graphics-programmer:implement-renderer-system',
-    branch: handoff.branch,
-    pr: handoff.pr || '',
-    head_sha: handoff.head_sha || '',
-    tests_pass: true,
-    docs: docs.pages || [],
-    undocumented: docs.undocumented || [],
-    non_original: strings(build.non_original),
-    notes,
-  },
-  next: wp
+  // An unverified run returns no handoff, so deliver-package cannot ship it
+  // as if every lens had passed; pushed still names the branch.
+  ...(unverified.length ? { pushed } : { handoff: handoffOut }),
+  next: unverified.length
+    ? `rerun the lenses that returned nothing with run.only: [${unverified.map((n) => JSON.stringify('attack:' + n.replace(/\s+/g, '-'))).join(', ')}] and run.results from this run; the run that verifies them returns the handoff`
+    : wp
     ? `ship it without rebuilding: /engineering-practices:deliver-package { wp: "${wp}", prior: <this result> }; after the code reviewer passes, /engineering-practices:land-pr { pr: "<the PR>" }`
     : `land it (it marks the PR ready, asks the code reviewer, polls CI and squash-merges once passed): /engineering-practices:land-pr ${handoff.pr ? `{ pr: "${handoff.pr}" }` : `{ branch: "${handoff.branch}" }`}`,
 }

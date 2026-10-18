@@ -75,7 +75,8 @@ renderer, not a measurement" and never compared with budgets. See
 | `findings` | Checks failing on current content, each with the owning role |
 | `docs`, `undocumented` | Pages touched; changes left undocumented and why |
 | `notes` | Informational notes by step. Never blocking |
-| `handoff` | `{ from, branch, pr, head_sha, tests_pass, docs, undocumented, non_original, notes }`, the object engineering-practices deliver-package takes as `prior` |
+| `handoff` | `{ from, branch, pr, head_sha, tests_pass, docs, undocumented, non_original, notes }`, the object engineering-practices deliver-package takes as `prior`. Only when `status` is `done`: an `unverified` result has no `handoff`, so deliver-package cannot ship it as checked |
+| `pushed` | `{ branch, pr, head_sha }`, only when `status` is `unverified`: where the work was pushed. `next` names the `run.only` labels to rerun; that run returns the handoff |
 | `next` | Send findings to their owners, if any; then with `wp`: deliver-package with `prior` set to this result, then land-pr. Without: land-pr |
 
 ## Run modes
