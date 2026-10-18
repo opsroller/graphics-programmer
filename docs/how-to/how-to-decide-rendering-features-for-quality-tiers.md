@@ -10,7 +10,9 @@ technical artist's visual target hands the question to you.
    `/technical-artist:visual-target`, its Renderer step gives you the
    question, the tiers and the look per tier. Otherwise write the question
    yourself: which features (lighting, shadows, reflections, volumetrics,
-   anti-aliasing, upscaling, post) on which tiers.
+   anti-aliasing, upscaling, post) on which tiers. If a decision is
+   already written down, do not decide again: follow
+   [How to build a rendering system from a renderer decision](how-to-build-a-rendering-system-from-a-renderer-decision.md).
 2. **Check the tiers exist.** Each needs a weakest example device and a
    frame budget in ms. If not, follow
    [How to set frame budgets for device tiers](how-to-set-frame-budgets-for-device-tiers.md)
@@ -34,6 +36,8 @@ technical artist's visual target hands the question to you.
 6. **Hand the decision back.** Give the technical artist the `decision`
    object. They resume their visual target with it as the `renderer` arg,
    and the `constraints` become rules for content.
+7. **Build it.** Follow
+   [How to build a rendering system from a renderer decision](how-to-build-a-rendering-system-from-a-renderer-decision.md).
 
 See the [renderer-decision](../reference/workflow-renderer-decision.md)
 reference and [platform-scaling](../reference/skill-platform-scaling.md).

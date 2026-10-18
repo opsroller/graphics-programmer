@@ -82,7 +82,11 @@ transform that drew the frame.
   and features deliver it within the frame budget. The technical artist's
   `visual-target` workflow hands that question over in a defined step and
   the graphics programmer's `renderer-decision` workflow answers it in the
-  same shape, so neither side decides the other's half.
+  same shape, so neither side decides the other's half. Deciding and
+  building are separate on purpose: once a decision is written, whoever
+  wrote it, `renderer-decision` only checks it and plans the build, and
+  `implement-renderer-system` builds it, so a settled decision is not
+  reopened each time someone starts the code.
 - **ui-developer** builds menus and HUD on top of the same input actions.
 - **frontend-web-developer** owns the page around a web build; the graphics
   programmer owns what happens inside the canvas.

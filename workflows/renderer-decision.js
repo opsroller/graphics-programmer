@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 export const meta = {
   name: 'renderer-decision',
-  description: 'Decide the rendering path and the per-tier rendering features (lighting, shadows, reflections, volumetrics, post, anti-aliasing, upscaling) for a set of quality tiers: list the options, evaluate each on the weakest target in parallel, decide, check the frame budget adds up, and document the decision. Called by a technical-artist visual target or on its own. args: { question: "what must be decided, e.g. which GI and reflections each tier gets", tiers?: "tier names, devices and frame-time targets, or where they are written", wants?: "the look the visual target asks for, per tier" }',
+  description: 'Decide the rendering path and the per-tier rendering features (lighting, shadows, reflections, volumetrics, post, anti-aliasing, upscaling) for a set of quality tiers: list the options, evaluate each on the weakest target in parallel, decide, check the frame budget adds up, and document the decision. Called by a technical-artist visual target or on its own. With decision set to an existing decision (for example one a visual target wrote), it does not decide again: it reads it, has it checked independently and turns it into an implementation plan for implement-renderer-system. args: { question: "what must be decided, e.g. which GI and reflections each tier gets", tiers?: "tier names, devices and frame-time targets, or where they are written", wants?: "the look the visual target asks for, per tier", decision?: "an existing decision, or the docs path that holds it" }',
   phases: [
     { title: 'Plan', detail: 'tiers, budgets, candidate options per feature, docs plan (compass)' },
     { title: 'Evaluate', detail: 'one read-only agent per option: support per target, estimated cost, look, fallback' },
@@ -9,6 +9,7 @@ export const meta = {
     { title: 'Decide', detail: 'renderer path and feature matrix per tier, with constraints for art' },
     { title: 'Check', detail: 'budgets add up per tier, every feature has a fallback, costs evidenced' },
     { title: 'Docs', detail: 'decision record and reference in the same PR, then verify one kind per page' },
+    { title: 'Implementation plan', detail: 'with decision given: engine settings per tier, systems to build, tests, self-test and budget' },
   ],
 }
 
@@ -105,7 +106,7 @@ const RUN_OUT = await Promise.race([RUN.halted, (async (agent, phase, log) => {
 // --- run-modes v2 end (workflow body follows; close it with the tail line) ---
 
 const question = args && args.question
-if (!question) return 'usage: renderer-decision with args { question: "which GI, shadows and reflections each tier gets", tiers?: "high desktop 60 fps, mobile 30 fps, web 30 fps (or a docs path)", wants?: "the look per tier" }'
+if (!question) return 'usage: renderer-decision with args { question: "which GI, shadows and reflections each tier gets", tiers?: "high desktop 60 fps, mobile 30 fps, web 30 fps (or a docs path)", wants?: "the look per tier", decision?: "docs path or object of an existing decision" }'
 const tiers = (args && args.tiers) || 'not given: take them from the project profile or the visual target docs'
 const wants = (args && args.wants) || 'not given: take them from the visual target docs or art direction, if any'
 
@@ -136,6 +137,119 @@ const DECISION = {
     openQuestions: { type: 'array', items: { type: 'string' } },
   },
   required: ['status', 'renderer', 'features', 'constraints'],
+}
+
+// The plan implement-renderer-system takes as its plan arg.
+const IMPL = {
+  type: 'object',
+  properties: {
+    tiers: { type: 'string', description: 'each tier: weakest example device, target fps, frame budget ms' },
+    settings: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          tier: { type: 'string' },
+          feature: { type: 'string' },
+          setting: { type: 'string', description: 'the engine setting, API or resource that delivers it, from the engine documentation' },
+          value: { type: 'string' },
+          fallback: { type: 'string', description: 'what applies where the feature is off or unsupported' },
+        },
+        required: ['tier', 'feature', 'setting', 'value', 'fallback'],
+      },
+    },
+    systems: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'e.g. quality tiers, adaptive resolution' },
+          what: { type: 'string' },
+          role: { type: 'string', description: 'the role that builds it; graphics-programmer for engine-side rendering code' },
+          doneWhen: { type: 'string', description: 'testable' },
+        },
+        required: ['name', 'what', 'role', 'doneWhen'],
+      },
+      description: 'each piece of work, in build order; each graphics-programmer item runs as implement-renderer-system',
+    },
+    tests: { type: 'array', items: { type: 'string' }, description: 'one-line test cases across the systems' },
+    selfTest: { type: 'string', description: 'a headless engine run that applies every tier, reads the settings back and exits non-zero on a mismatch' },
+    budget: { type: 'string', description: 'cost limit per tier in ms and how it is measured' },
+    openQuestions: { type: 'array', items: { type: 'string' } },
+  },
+  required: ['settings', 'systems', 'tests', 'selfTest', 'budget'],
+}
+
+// ---------- Existing decision: check it and plan the build ----------
+if (args.decision) {
+  const ref = typeof args.decision === 'string' ? args.decision : JSON.stringify(args.decision)
+  phase('Plan')
+  const GIVEN = {
+    type: 'object',
+    properties: {
+      decision: DECISION,
+      tiers: { type: 'string', description: 'each tier: weakest example device, target fps, frame budget ms, render scale' },
+      engine: { type: 'string', description: 'engine or framework and version, and its rendering paths per target' },
+      source: { type: 'string', description: 'where the decision is written' },
+    },
+    required: ['decision', 'tiers', 'engine', 'source'],
+  }
+  const read = await agent(
+    `You are the graphics-programmer. A renderer decision for "${question}" already exists: ${ref}. Follow engineering-practices project-onboarding. Read it (open the file if this is a path) and return it unchanged in the decision shape, with the tiers and the engine and version it applies to (from the decision, else ${tiers}, else the project profile). ` +
+    'Do not decide anything again and do not edit files. If it gives no technique for a feature, copy what it says and leave the gap for the check.',
+    { schema: GIVEN, phase: 'Plan', label: 'read decision' },
+  )
+  if (!read || !read.decision) return { status: 'blocked', stage: 'plan', open: ['the existing decision could not be read: ' + ref] }
+  if (read.decision.status === 'pending') return { status: 'pending', decision: read.decision, openQuestions: read.decision.openQuestions || [], source: read.source }
+
+  phase('Check')
+  const GCHECK = {
+    type: 'object',
+    properties: {
+      ok: { type: 'boolean' },
+      problems: { type: 'array', items: { type: 'string' } },
+      perTierTotals: { type: 'string', description: 'sum of feature costs per tier against its frame budget' },
+    },
+    required: ['ok', 'problems', 'perTierTotals'],
+  }
+  const gcheck = await agent(
+    `You are a graphics-programmer giving an independent check of an existing renderer decision for "${question}" that you did not write. Tiers: ${read.tiers}. Engine: ${read.engine}. Source: ${read.source}.\n` +
+    `Decision:\n${JSON.stringify(read.decision, null, 2)}\nWanted look: ${wants}.\n` +
+    'Follow platform-scaling and frame-budget-profiling. Check against the engine\'s own documentation that every tier can run the chosen path and techniques on its platforms; add up the feature costs per tier against the frame budget, leaving room for the game\'s own CPU work and content; check every feature the question covers has a technique per tier and a fallback, every cost has evidence and estimates are labelled, and the constraints are concrete enough for art to follow. Report problems; do not edit files.',
+    { schema: GCHECK, phase: 'Check', label: 'check:given', independent: true },
+  )
+  if (!gcheck) return { status: 'unverified', stage: 'check', decision: read.decision, source: read.source, note: 'check of the existing decision returned nothing' }
+  if (!gcheck.ok || (gcheck.problems || []).length) {
+    return {
+      status: 'needs-revision',
+      decision: read.decision,
+      source: read.source,
+      problems: gcheck.problems || ['check failed without naming a problem'],
+      perTierTotals: gcheck.perTierTotals,
+      next: 'Ask the owner of the decision to fix these problems (engineering-practices peer-coordination), or run this workflow without decision to decide again; then run it with decision once more.',
+    }
+  }
+
+  phase('Implementation plan')
+  const impl = await agent(
+    `You are the graphics-programmer turning the checked renderer decision for "${question}" into an implementation plan. Tiers: ${read.tiers}. Engine: ${read.engine}.\n` +
+    `Decision:\n${JSON.stringify(read.decision, null, 2)}\n` +
+    'Follow platform-scaling. For every tier and feature, name the engine setting, API or resource that delivers the decided technique and the value it takes, with its fallback, from the engine\'s documentation for this version; note settings that need a restart or a new viewport. Split the work into systems in build order (usually one quality-tier system that applies a profile per tier first, then any adaptive or per-scene systems), each with its role and a testable done-when. ' +
+    'List the test cases, one headless self-test that applies every tier and reads the settings back, and the cost budget per tier from the decision. Do not change the decision; anything it leaves open goes in openQuestions. Do not edit files.',
+    { schema: IMPL, phase: 'Implementation plan', label: 'implementation plan' },
+  )
+  if (!impl) return { status: 'blocked', stage: 'implementation plan', open: ['the implementation plan returned nothing'], decision: read.decision }
+  const first = (impl.systems || []).find((x) => /graphics/i.test(x.role || '')) || (impl.systems || [])[0]
+  return {
+    status: 'planned',
+    decision: read.decision,
+    source: read.source,
+    perTierTotals: gcheck.perTierTotals,
+    implementationPlan: impl,
+    next: first
+      ? `Build each graphics-programmer system in order, starting with: /graphics-programmer:implement-renderer-system { system: ${JSON.stringify(first.name)}, spec: ${JSON.stringify(read.source)}, plan: <this result's implementationPlan> }. Nothing was written to the working tree.`
+      : 'The plan names no system to build. Nothing was written to the working tree.',
+  }
 }
 
 // ---------- Plan ----------
@@ -298,7 +412,7 @@ return {
   decision,
   perTierTotals: check.perTierTotals,
   unevaluated,
-  next: 'Docs are in the working tree, not committed. Ship them with /engineering-practices:deliver-package or /engineering-practices:small-change.',
+  next: 'Docs are in the working tree, not committed. Ship them with /engineering-practices:deliver-package or /engineering-practices:small-change. To build it, run this workflow again with decision set to the reference page for an implementation plan, then /graphics-programmer:implement-renderer-system.',
   docProblems: docCheck ? (docCheck.problems || []) : ['docs check returned nothing'],
 }
 })(RUN.agent, RUN.phase, RUN.log)]); return RUN.finish(RUN_OUT)

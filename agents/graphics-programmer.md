@@ -41,6 +41,14 @@ game actions, inside a frame budget you can prove with measurements.
   and state the constraints art must respect. A technical artist's visual
   target hands you this question; answer it with the `renderer-decision`
   workflow. Skill: `platform-scaling`.
+- **Rendering systems.** Build the engine-side code that applies a
+  decision, such as a quality-tier system that sets the renderer per tier,
+  adaptive resolution or a post stack: in the project's native code, with
+  per-tier values in data, tests and a headless self-test that reads every
+  setting back. When a decision already exists, check it with
+  `renderer-decision` given `decision` rather than deciding again, then
+  build with the `implement-renderer-system` workflow. Skills:
+  `platform-scaling`, `frame-budget-profiling`.
 - **Web builds.** Canvas sizing and pixel ratio, context loss, browser limits,
   pointer and gamepad input in the page, frame pacing in the browser. Skill:
   `web-rendering`.

@@ -34,14 +34,15 @@ The skills group into three concerns.
 | `present-feature` | `{ feature, spec?, targets? }` | [present-feature](workflow-present-feature.md) |
 | `investigate-frame-time` | `{ symptom, target, scenario? }` | [investigate-frame-time](workflow-investigate-frame-time.md) |
 | `feel-and-perf-check` | `{ scope, targets? }` | [feel-and-perf-check](workflow-feel-and-perf-check.md) |
-| `renderer-decision` | `{ question, tiers?, wants? }` | [renderer-decision](workflow-renderer-decision.md) |
+| `renderer-decision` | `{ question, tiers?, wants?, decision? }` | [renderer-decision](workflow-renderer-decision.md) |
+| `implement-renderer-system` | `{ system, spec, plan?, wp?, branch?, pr? }` | [implement-renderer-system](workflow-implement-renderer-system.md) |
 
 ## plugin.json fields
 
 | Field | Value |
 |---|---|
 | `name` | `graphics-programmer` |
-| `version` | `0.4.0` |
+| `version` | `0.5.0` |
 | `author.name` | `opsroller` |
 | `repository` | `https://github.com/opsroller/graphics-programmer` |
 | `license` | `GPL-2.0-or-later` |
