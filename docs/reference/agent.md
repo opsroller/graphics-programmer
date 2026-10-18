@@ -21,6 +21,8 @@
 | Rendering path and features per quality tier, costed with fallbacks | [platform-scaling](skill-platform-scaling.md), [renderer-decision](workflow-renderer-decision.md) |
 | Engine-side rendering systems that apply a decision, such as quality tiers | [platform-scaling](skill-platform-scaling.md), [implement-renderer-system](workflow-implement-renderer-system.md) |
 | Rendering and input in web builds | [web-rendering](skill-web-rendering.md) |
+| Benchmarks, frame-time capture, acceptance and tier feature checks | [frame-budget-profiling](skill-frame-budget-profiling.md), [build-measurement-tool](workflow-build-measurement-tool.md) |
+| Rendering on machines with no GPU or display (containers, CI) | [headless-rendering](skill-headless-rendering.md) |
 
 ## Does not own
 
@@ -28,7 +30,7 @@
 |---|---|
 | Game rules, systems, state | gameplay-programmer |
 | Feel targets, camera intent, specs | game-designer |
-| Material/shader look, in-game 3D assets, asset budgets, pipeline, the visual target per tier | technical-artist |
+| Material/shader look, in-game 3D assets, asset budgets, pipeline, the visual target per tier, look-dev captures, acceptance thresholds | technical-artist |
 | Menus, HUD, localization, UI accessibility | ui-developer |
 | 2D identity, palette, icons | graphic-designer |
 | Sound | sound-designer |
@@ -39,7 +41,7 @@
 ## Never
 
 - Game rules, random rolls or outcomes in presentation code; logic waiting on animation.
-- Performance quoted from editor, debug or desktop builds for phone targets.
+- Performance quoted from editor, debug or desktop builds for phone targets, or from a software renderer at all.
 - Average FPS without frame time.
 - Hard-coded device names, asset paths or bindings outside the places the project names.
 - Vendor-specific paths without a fallback.

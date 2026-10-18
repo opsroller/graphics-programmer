@@ -86,12 +86,25 @@ transform that drew the frame.
   building are separate on purpose: once a decision is written, whoever
   wrote it, `renderer-decision` only checks it and plans the build, and
   `implement-renderer-system` builds it, so a settled decision is not
-  reopened each time someone starts the code.
+  reopened each time someone starts the code. Measuring against that
+  target splits the same way: the technical artist calibrates the
+  acceptance thresholds against reviewed captures, and the graphics
+  programmer's `build-measurement-tool` builds the benchmark and checks
+  that apply them, so a failing check on today's art is a finding for the
+  artist, not a bug in the tool.
 - **ui-developer** builds menus and HUD on top of the same input actions.
 - **frontend-web-developer** owns the page around a web build; the graphics
   programmer owns what happens inside the canvas.
 
 ## Quality bars, and the trade-offs behind them
+
+A note on machines without a GPU. Cloud containers and CI runners can
+draw real frames with a software rasteriser, which is enough to prove a
+renderer starts, applies its settings and writes captures. It is never
+enough to say what anything costs: the CPU rasterises with a cost profile
+unlike any GPU's, so the `headless-rendering` skill treats every frame
+time from such a machine as "not a measurement" while still using its
+counts and pass/fail results.
 
 The plugin's bars are strict on purpose: target frame rate held on the
 weakest device in a long session; outcomes identical with presentation

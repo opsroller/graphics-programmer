@@ -150,7 +150,7 @@ const HYPOTHESES = {
 phase('Plan')
 const plan = await agent(
   `You are the graphics-programmer. Onboard first (engineering-practices project-onboarding). Symptom: "${symptom}" on ${target}. ${scenarioHint}
-Follow the frame-budget-profiling skill: fix a repeatable scenario, take the frame budget for this target from the project profile (or propose one), and say whether a real device and release-like build are reachable (canMeasure).
+Follow the frame-budget-profiling skill: fix a repeatable scenario, take the frame budget for this target from the project profile (or propose one), and say whether a real device and release-like build are reachable (canMeasure). A machine with no GPU (a cloud container or CI runner rendering in software, per the graphics-programmer headless-rendering skill) is not a device: its frame times are not measurements, so it never makes canMeasure true.
 Docs plan: ${DOCS_FRAGMENT} Here only plan: list each page (kind, path, change). Do not edit anything.`,
   { schema: PLAN, phase: 'Plan', label: 'plan' },
 )

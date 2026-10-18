@@ -44,6 +44,19 @@
 - **Android, Performance class** - https://developer.android.com/topic/performance/performance-class - grouping devices by declared capability rather than model name.
 - **Apple, Metal feature set tables** - https://developer.apple.com/metal/capabilities/ - feature support varies by GPU family; check support per target before choosing a technique.
 
+## Rendering without a GPU
+
+- **Mesa, llvmpipe** - https://docs.mesa3d.org/drivers/llvmpipe.html - the CPU software rasteriser behind Mesa's software OpenGL and, as lavapipe, its software Vulkan driver; informed `headless-rendering`.
+- **Mesa, environment variables** - https://docs.mesa3d.org/envvars.html - `LIBGL_ALWAYS_SOFTWARE` to force software rendering.
+- **Khronos, Vulkan loader architecture** - https://github.com/KhronosGroup/Vulkan-Loader/blob/main/docs/LoaderInterfaceArchitecture.md - selecting an installed driver with `VK_DRIVER_FILES` (formerly `VK_ICD_FILENAMES`).
+- **xvfb-run manual (Debian)** - https://manpages.debian.org/testing/xvfb/xvfb-run.1.en.html - running a program on a virtual X server; `-a` and the screen size argument.
+- **Godot Engine, Command line tutorial** - https://docs.godotengine.org/en/stable/tutorials/editor/command_line_tutorial.html - an engine's headless mode uses a dummy renderer that draws nothing, and the rendering driver can be picked on the command line.
+- **Practice in this plugin's first project** - a benchmark scene and readability capture built and run in a cloud container on lavapipe and OpenGL under Xvfb; the window size had to be set through a config override because the command-line flag was ignored. Informed `headless-rendering` and `build-measurement-tool`.
+
+These pages could not be fetched from the research session (the network
+blocked them); the entries rely on the documented behaviour of these
+tools as known from their documentation and common practice.
+
 ## Standards and guidelines
 
 - **W3C Pointer Events Level 3** - https://www.w3.org/TR/pointerevents3/ - unified mouse/touch/pen model, pointer capture, cancel, touch-action, coalesced and predicted events.

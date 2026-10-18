@@ -132,7 +132,7 @@ const checks = [
   ['feel', 'Compare every animation timing and easing with the feel targets in the design spec; list each delta as "beat: actual vs target". Check skip and reduced motion. Skill: event-presentation.'],
   ['readability', 'Check the readable set at the smallest supported resolution and the narrowest and widest aspect ratios, inside safe areas, in grayscale. Skills: scene-composition, camera-systems.'],
   ['input', 'Check every action on every supported device family, including cancel, focus loss and disconnect, and touch target sizes. Skill: input-handling.'],
-  ...targets.map((t) => [`perf: ${t}`, `Measure frame time (median, p95, p99) on ${t} in a release-like build against the project budget; if no device or build is available, estimate from scene and code and set measured=false. Skills: frame-budget-profiling, platform-scaling, web-rendering for web targets.`]),
+  ...targets.map((t) => [`perf: ${t}`, `Measure frame time (median, p95, p99) on ${t} in a release-like build against the project budget; if no device or build is available, estimate from scene and code and set measured=false. Frame times from a software renderer on a machine with no GPU (graphics-programmer headless-rendering skill) are not measurements: set measured=false for them too. Skills: frame-budget-profiling, platform-scaling, web-rendering for web targets.`]),
 ]
 
 phase('Check')

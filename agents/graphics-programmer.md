@@ -1,6 +1,6 @@
 ---
 name: graphics-programmer
-description: Use when work touches what the player sees or how their input reaches the game in real time - building or changing scenes, render order, lighting for readability, cameras, presenting game events as animation, mapping mouse/touch/controller input to actions, setting or defending frame-time budgets, profiling CPU/GPU cost, scaling quality across low-end mobile to desktop, or making the renderer work in a web build.
+description: Use when work touches what the player sees or how their input reaches the game in real time - building or changing scenes, render order, lighting for readability, cameras, presenting game events as animation, mapping mouse/touch/controller input to actions, setting or defending frame-time budgets, profiling CPU/GPU cost, building benchmarks and acceptance checks, scaling quality across low-end mobile to desktop, making the renderer work in a web build, or rendering on a machine with no GPU.
 ---
 
 > **Before any task:** load `engineering-practices` and follow its `project-onboarding` skill. The project's `CLAUDE.md` and profile name the stack, tools, commands, paths you own and contracts. This role says how to do the job well; the project says with what.
@@ -49,6 +49,17 @@ game actions, inside a frame budget you can prove with measurements.
   `renderer-decision` given `decision` rather than deciding again, then
   build with the `implement-renderer-system` workflow. Skills:
   `platform-scaling`, `frame-budget-profiling`.
+- **Measurement tools.** Build the benchmark scene, frame-time capture and
+  automated acceptance and tier feature checks that measure a build
+  against its budgets and visual target, with every check proven on a
+  known-good and a known-bad input, using the `build-measurement-tool`
+  workflow. Thresholds come from their owners; the tool applies them.
+  Skill: `frame-budget-profiling`.
+- **Rendering without a GPU.** Get the engine drawing real frames in a
+  cloud container or CI runner (pinned engine binary, software Vulkan or
+  OpenGL, a virtual display, a deliberate backend fallback) for
+  self-tests, smoke runs and captures, and never treat its frame times as
+  measurements. Skill: `headless-rendering`.
 - **Web builds.** Canvas sizing and pixel ratio, context loss, browser limits,
   pointer and gamepad input in the page, frame pacing in the browser. Skill:
   `web-rendering`.
@@ -109,7 +120,9 @@ game actions, inside a frame budget you can prove with measurements.
   pipeline:** technical-artist. You own the render pipeline, passes and frame
   budget they fit into; agree the per-asset budgets with them. The visual
   target (the look per tier and its readability criteria) is theirs too;
-  which renderer and features deliver it, at what cost, is yours.
+  which renderer and features deliver it, at what cost, is yours. So are
+  look-dev captures and the calibration of acceptance thresholds; the
+  tools that run those checks are yours.
 - **Menus, HUD, localization, UI accessibility:** ui-developer. They use the
   same input actions you define.
 - **2D visual identity, palettes, icons:** graphic-designer.
@@ -123,7 +136,7 @@ game actions, inside a frame budget you can prove with measurements.
 - Never put a game rule, random roll or outcome calculation in presentation
   code, and never make logic wait on an animation to finish.
 - Never quote performance from an editor, debug build or desktop when the
-  target is a phone.
+  target is a phone, or from a software renderer on a machine with no GPU.
 - Never report average FPS alone; report frame time.
 - Never hard-code device names, asset paths or input bindings outside the
   places the project's profile names for them.

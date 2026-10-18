@@ -7,7 +7,7 @@
 | Type | Workflow |
 | File | [`workflows/implement-renderer-system.js`](../../workflows/implement-renderer-system.js) |
 | Invoke | `/graphics-programmer:implement-renderer-system` |
-| Skills used | platform-scaling, frame-budget-profiling, web-rendering (browser targets); engineering-practices project-onboarding, provenance, peer-coordination, git-workflow |
+| Skills used | platform-scaling, frame-budget-profiling, headless-rendering (machines with no GPU or display), web-rendering (browser targets); engineering-practices project-onboarding, provenance, peer-coordination, git-workflow |
 
 Builds one engine-side rendering system from a decision that already
 exists: for example a quality-tier system that applies a profile per tier
@@ -47,7 +47,9 @@ engine without a window (or in the project's offscreen mode), applies every
 tier in turn, reads each setting back, prints what it checked and exits
 non-zero on any mismatch. It runs wherever the suite runs; if CI needs a
 change in a path another role owns, Build makes the smallest change and
-says so in `notes`.
+says so in `notes`. On a machine with no GPU or display, the self-test
+renders per [headless-rendering](skill-headless-rendering.md), and a cost
+measured there is labelled `estimate`.
 
 ## Results
 
