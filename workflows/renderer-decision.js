@@ -12,12 +12,13 @@ export const meta = {
   ],
 }
 
-// --- run-modes v1 begin ---
+// --- run-modes v2 begin ---
 const RUN = ((a, realAgent, realPhase, realLog) => {
   const opted = !!(a && typeof a === 'object' && a.run && typeof a.run === 'object')
   const c = opted ? a.run : {}
   const mode = c.mode === 'inline' ? 'inline' : 'agents'
   const results = c.results && typeof c.results === 'object' ? c.results : {}
+  const reviewers = c.reviewers && typeof c.reviewers === 'object' ? c.reviewers : {}
   const only = Array.isArray(c.only) && c.only.length ? c.only.map(String) : null
   const from = c.from ? String(c.from) : null
   const titles = typeof meta !== 'undefined' && meta && Array.isArray(meta.phases) ? meta.phases.map((p) => p.title) : []
@@ -37,6 +38,10 @@ const RUN = ((a, realAgent, realPhase, realLog) => {
   }
   const seen = {}
   const out = {}
+  // Who answered each step marked independent: "subagent" when this run
+  // spawned it, else the reviewer named in run.reviewers, else "self".
+  const by = {}
+  const who = (k) => (typeof reviewers[k] === 'string' && reviewers[k].trim() ? reviewers[k].trim() : 'self')
   const skipped = []
   const next = []
   const logs = []
@@ -48,6 +53,7 @@ const RUN = ((a, realAgent, realPhase, realLog) => {
   const picked = (ph, label) => reached && (!only || only.some((s) => s === ph || s === label || label.startsWith(s + ':')))
   const agent = (prompt, opts) => {
     const op = opts || {}
+    const independent = op.independent === true
     const ph = op.phase || current
     const base = op.label || ph || 'agent'
     seen[base] = (seen[base] || 0) + 1
@@ -55,14 +61,22 @@ const RUN = ((a, realAgent, realPhase, realLog) => {
     let note = null
     if (has(results, key)) {
       const gap = missing(results[key], op.schema)
-      if (!gap) { out[key] = results[key]; return Promise.resolve(results[key]) }
+      if (!gap) { out[key] = results[key]; if (independent) by[key] = who(key); return Promise.resolve(results[key]) }
       note = `answer missing ${gap}; answer this brief again`
     }
     if (!picked(ph, base)) { skipped.push(key); return Promise.resolve(null) }
     if (mode === 'agents') {
-      return realAgent(prompt, opts).then((r) => { if (r !== null && r !== undefined) out[key] = r; return r })
+      const pass = Object.assign({}, op)
+      delete pass.independent
+      return realAgent(prompt, opts ? pass : opts).then((r) => {
+        if (r !== null && r !== undefined) { out[key] = r; if (independent) by[key] = 'subagent' }
+        return r
+      })
     }
-    next.push(note ? { key, phase: ph, prompt, schema: op.schema || null, note } : { key, phase: ph, prompt, schema: op.schema || null })
+    const brief = { key, phase: ph, prompt, schema: op.schema || null }
+    if (independent) brief.independent = true
+    if (note) brief.note = note
+    next.push(brief)
     if (!halting) {
       halting = true
       // Wait 200 microtask turns before pausing, so every sibling in a
@@ -75,19 +89,20 @@ const RUN = ((a, realAgent, realPhase, realLog) => {
   const log = (m) => { logs.push(String(m)); return realLog(m) }
   const finish = (value) => {
     if (!opted) return value
+    const self_reviewed = Object.keys(by).filter((k) => by[k] === 'self')
     if (value === '__run_halted__') {
       return {
-        run: 'inline', status: 'next', next, results: out, skipped, logs,
-        how: 'Do each brief in next yourself, in order: follow its prompt in this session (it may tell you to edit files, commit or push), and shape your answer to its schema when one is given, with every required field. A brief with a note was answered before without the fields it names. Add each answer to results under its key, then run this workflow again with the same args and run.results set to the merged results. Repeat until status is "done".',
+        run: 'inline', status: 'next', next, results: out, reviewers: by, self_reviewed, skipped, logs,
+        how: 'Do each brief in next, in order: follow its prompt in this session (it may tell you to edit files, commit or push), and shape your answer to its schema when one is given, with every required field. A brief marked independent reviews work this run produced, so do not answer it yourself: send its prompt to a reviewer with no part in the work (the project\'s code-reviewer role, a fresh session or a fresh subagent), use their answer, and name them in run.reviewers under its key; if you must answer it yourself, it is listed in self_reviewed and must be reported as self-reviewed. A brief with a note was answered before without the fields it names. Add each answer to results under its key, then run this workflow again with the same args, run.results set to the merged results and run.reviewers to the merged reviewers. Repeat until status is "done".',
       }
     }
-    return { run: mode, status: 'done', result: value, results: out, skipped, logs }
+    return { run: mode, status: 'done', result: value, results: out, reviewers: by, self_reviewed, skipped, logs }
   }
   return { agent, phase, log, finish, halted, error }
 })(typeof args === 'undefined' ? undefined : args, agent, phase, log)
 if (RUN.error) return RUN.error
 const RUN_OUT = await Promise.race([RUN.halted, (async (agent, phase, log) => {
-// --- run-modes v1 end (workflow body follows; close it with the tail line) ---
+// --- run-modes v2 end (workflow body follows; close it with the tail line) ---
 
 const question = args && args.question
 if (!question) return 'usage: renderer-decision with args { question: "which GI, shadows and reflections each tier gets", tiers?: "high desktop 60 fps, mobile 30 fps, web 30 fps (or a docs path)", wants?: "the look per tier" }'
@@ -251,11 +266,11 @@ const checkPrompt = (d) =>
   `You are a second graphics-programmer checking a renderer decision for "${question}". Tiers: ${plan.tiers}.\n` +
   `Decision:\n${JSON.stringify(d, null, 2)}\n` +
   'Add up the feature costs per tier and compare with the frame budget, leaving room for the game\'s own CPU work and content. Check that every feature has a fallback, every tier runs the chosen path on its platforms, every cost has evidence and estimates are labelled, and the constraints are concrete enough for art to follow. Report problems; do not edit files.'
-let check = await agent(checkPrompt(decision), { schema: CHECK, phase: 'Check', label: 'check:1' })
+let check = await agent(checkPrompt(decision), { schema: CHECK, phase: 'Check', label: 'check:1', independent: true })
 if (check && !check.ok && check.problems && check.problems.length) {
   const revised = await decide(2, check.problems)
   if (revised) decision = revised
-  check = await agent(checkPrompt(decision), { schema: CHECK, phase: 'Check', label: 'check:2' })
+  check = await agent(checkPrompt(decision), { schema: CHECK, phase: 'Check', label: 'check:2', independent: true })
 }
 if (!check) return { status: 'unverified', stage: 'check', decision, note: 'budget check returned nothing' }
 if (!check.ok) return { status: 'blocked', stage: 'check', open: check.problems || [], decision }
@@ -270,10 +285,14 @@ const docs = await agent(
 )
 if (!docs) return { status: 'blocked', stage: 'docs', open: ['docs writer returned nothing'], decision }
 const DOCCHECK = { type: 'object', properties: { ok: { type: 'boolean' }, problems: { type: 'array', items: { type: 'string' } } }, required: ['ok'] }
-const docCheck = await agent(
-  `Review the documentation pages just written for the renderer decision (writer's report: ${JSON.stringify(docs)}). Check one Diataxis kind per page, title patterns (how-to names a goal; explanation reads with "About"), reference format matches siblings, links between kinds, and that the numbers match the decision. Fix small problems; report what remains.`,
-  { schema: DOCCHECK, phase: 'Docs', label: 'docs check' },
-)
+// The check only reads, so it stays independent of the writing; small
+// fixes are their own step, followed by a fresh check.
+const docCheckPrompt = `Review the documentation pages just written for the renderer decision (writer's report: ${JSON.stringify(docs)}). Check one Diataxis kind per page, title patterns (how-to names a goal; explanation reads with "About"), reference format matches siblings, links between kinds, and that the numbers match the decision. Read-only: do not edit anything; report every problem with its page.`
+let docCheck = await agent(docCheckPrompt, { schema: DOCCHECK, phase: 'Docs', label: 'docs check', independent: true })
+if (docCheck && !docCheck.ok && (docCheck.problems || []).length) {
+  const docFix = await agent(`Fix these documentation problems with the smallest edits, touching only the pages they name; leave anything that needs a content decision:\n- ${docCheck.problems.join('\n- ')}`, { phase: 'Docs', label: 'docs fix' })
+  if (docFix) docCheck = await agent(docCheckPrompt, { schema: DOCCHECK, phase: 'Docs', label: 'docs recheck', independent: true })
+}
 return {
   status: !docCheck ? 'done-docs-unverified' : !docCheck.ok ? 'blocked' : unevaluated.length ? 'unverified' : 'decided',
   decision,

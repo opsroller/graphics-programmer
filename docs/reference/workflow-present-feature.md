@@ -49,10 +49,12 @@ Related: [How to present a game feature](../how-to/how-to-present-a-game-feature
 
 ## Run modes
 
-Run modes v1. Besides its own args, the workflow takes the optional `run` arg defined in the engineering-practices
+Run modes v2. Besides its own args, the workflow takes the optional `run` arg defined in the engineering-practices
 [workflow run modes reference](https://github.com/opsroller/engineering-practices/blob/main/docs/reference/workflow-run-modes.md):
 `run: { mode: "inline" }` runs every phase in the calling session with no subagents, `run.only` runs chosen phases or steps,
 and `run.from` with `run.results` resumes a stopped run. Without `run`, the workflow and its outputs are as above.
 See [how to run a workflow inline](https://github.com/opsroller/engineering-practices/blob/main/docs/how-to/how-to-run-a-workflow-inline.md).
 
-Step labels, for `run.only` and `run.results`: `plan`, `build`, one per area (`feel`, `input`, `readability`, and `perf: <target>` per target), `fix round <round>`, `docs`, `docs check`.
+Step labels, for `run.only` and `run.results`: `plan`, `build`, one per area (`feel`, `input`, `readability`, and `perf: <target>` per target; `<area> round <n>` from the second round), `fix round <round>`, `docs`, `docs check`.
+
+Independent steps: every area check (`feel`, `input`, `readability`, `perf: <target>`, and `<area> round <n>` in later rounds), `docs check`. They review work this run produced, so in inline mode send each to a reviewer with no part in the work and name them in `run.reviewers`; a step you answer yourself is reported in `self_reviewed`.
