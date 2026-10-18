@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 export const meta = {
   name: 'present-feature',
-  description: 'Build the presentation for a game feature end to end: plan scene, camera, event-to-animation beats and input actions, implement them, check feel, frame time and input on each target in parallel, fix, and document in the same PR. Use when a feature already has a design spec and logic events. args: { feature: "short name, e.g. item pickup", spec?: "path to the design spec", targets?: ["weakest supported phone", "desktop"] }',
+  description: 'Build the presentation for a game feature end to end: plan scene, camera, event-to-animation beats and input actions, implement them, check feel, frame time and input on each target in parallel, fix, document in the same PR, and push it as a handoff for engineering-practices deliver-package or land-pr. Use when a feature already has a design spec and logic events. args: { feature: "short name, e.g. item pickup", spec?: "path to the design spec", targets?: ["weakest supported phone", "desktop"] }',
   phases: [
     { title: 'Plan', detail: 'presentation plan and docs plan (compass)' },
     { title: 'Build', detail: 'one agent implements the plan' },
@@ -9,6 +9,7 @@ export const meta = {
     { title: 'Fix', detail: 'one agent applies fixes; at most two rounds' },
     { title: 'Docs', detail: 'write the planned Diataxis pages in the same PR' },
     { title: 'Docs check', detail: 'one kind per page, titles, links' },
+    { title: 'Handoff', detail: 'commit and push the branch, run the checks on the pushed head, return a handoff for deliver-package or land-pr' },
   ],
 }
 
@@ -93,7 +94,7 @@ const RUN = ((a, realAgent, realPhase, realLog) => {
     if (value === '__run_halted__') {
       return {
         run: 'inline', status: 'next', next, results: out, reviewers: by, self_reviewed, skipped, logs,
-        how: 'Do each brief in next, in order: follow its prompt in this session (it may tell you to edit files, commit or push), and shape your answer to its schema when one is given, with every required field. A brief marked independent reviews work this run produced, so do not answer it yourself: send its prompt to a reviewer with no part in the work (the project\'s code-reviewer role, a fresh session or a fresh subagent), use their answer, and name them in run.reviewers under its key; if you must answer it yourself, it is listed in self_reviewed and must be reported as self-reviewed. A brief with a note was answered before without the fields it names. Add each answer to results under its key, then run this workflow again with the same args, run.results set to the merged results and run.reviewers to the merged reviewers. Repeat until status is "done".',
+        how: 'Do each brief in next, in order: follow its prompt in this session (it may tell you to edit files, commit or push), and shape your answer to its schema when one is given, with every required field. A brief marked independent reviews work this run produced, so do not answer it yourself: send its prompt to a reviewer with no part in the work (the project\'s code-reviewer role, a fresh session or a fresh subagent), use their answer, and name them in run.reviewers under its key; if you must answer it yourself, it is listed in self_reviewed and must be reported as self-reviewed. A brief with a note was answered before without the fields it names. Add each answer to results under its key, then run this workflow again with the same args, run.results set to the merged results and run.reviewers to the merged reviewers. Repeat until status is "done". To avoid pasting results back on every call, drive the run with engineering-practices tools/run-inline.mjs and a state file instead: it stores each answer and prints only the next briefs.',
       }
     }
     return { run: mode, status: 'done', result: value, results: out, reviewers: by, self_reviewed, skipped, logs }
@@ -190,24 +191,59 @@ while (true) {
 if (open.length) return `blocked after ${round} fix rounds; open blockers:\n- ${open.join('\n- ')}${unverified.length ? `\nunverified: ${unverified.join(', ')}` : ''}`
 
 phase('Docs')
+const DOCS = { type: 'object', properties: { pages: { type: 'array', items: { type: 'string' } }, undocumented: { type: 'array', items: { type: 'string' } } }, required: ['pages'] }
 const docs = await agent(
   `You are the graphics-programmer. Write the documentation for "${feature}" in the same PR. Planned pages: ${JSON.stringify(plan.docsPlan)}.
-${DOCS_FRAGMENT} Commit the docs on the same branch.`,
-  { phase: 'Docs', label: 'docs' },
+${DOCS_FRAGMENT} Commit the docs on the same branch. Return the page paths you touched and each change left undocumented with why.`,
+  { schema: DOCS, phase: 'Docs', label: 'docs' },
 )
 if (!docs) return 'blocked: docs agent returned nothing; the feature is not done without its docs'
 
 phase('Docs check')
 const DOCCHECK = { type: 'object', properties: { ok: { type: 'boolean' }, problems: { type: 'array', items: { type: 'string' } } }, required: ['ok', 'problems'] }
 const check = await agent(
-  `Review the docs pages touched for "${feature}" (read only). Check: each page holds one Diataxis kind only; nothing instructional in reference or explanation; how-to titles name a user goal and explanation titles read "About ..."; reference structure matches the code; pages link to the related pages of the other kinds; every user-visible change from this work is documented. Docs report: ${docs}`,
+  `Review the docs pages touched for "${feature}" (read only). Check: each page holds one Diataxis kind only; nothing instructional in reference or explanation; how-to titles name a user goal and explanation titles read "About ..."; reference structure matches the code; pages link to the related pages of the other kinds; every user-visible change from this work is documented. Docs report: ${JSON.stringify(docs)}`,
   { schema: DOCCHECK, phase: 'Docs check', label: 'docs check', independent: true },
 )
-if (!check) return `unverified: docs checker returned nothing. Build: ${built}\nDocs: ${docs}`
+if (!check) return `unverified: docs checker returned nothing. Build: ${built}\nDocs: ${JSON.stringify(docs)}`
 if (!check.ok) return `blocked: docs check failed:\n- ${check.problems.join('\n- ')}`
 
-if (unverified.length || estimated.length) {
-  return `unverified: presentation for "${feature}" built and documented, but not fully verified.${unverified.length ? `\nchecks that returned nothing: ${unverified.join(', ')}` : ''}${estimated.length ? `\nestimated, not measured: ${estimated.join(', ')}` : ''}\nRerun the missing checks before marking it done.\nBuild: ${built}\nDocs: ${docs}`
+// The handoff is what engineering-practices deliver-package takes as
+// prior, so the presentation ships without being built again.
+phase('Handoff')
+const HANDOFF = { type: 'object', properties: { branch: { type: 'string' }, pr: { type: 'string' }, head_sha: { type: 'string' }, tests_pass: { type: 'boolean' }, problem: { type: 'string' } }, required: ['branch', 'tests_pass'] }
+const pages = Array.isArray(docs.pages) ? docs.pages : []
+const hand = await agent(
+  `Hand off the presentation for "${feature}". If you are on the default branch, cut a Conventional branch (feat/<slug>) from the latest remote default branch; otherwise stay on the current feature branch. Commit everything this run wrote (the presentation code, scene, camera, animation and input data, fixes and their tests, and the docs pages ${pages.join(', ') || 'as written'}) as Conventional Commits, and push. Run the project's checks that apply (test suite, headless or scene checks and the docs link check the project profile names) on the pushed head. Do not open, mark ready or merge a PR: the engineering-practices workflow named in the result does that. Follow the engineering-practices git-workflow skill. Return the branch, any open PR, the head commit SHA, whether the checks pass on that head, and the problem if not.`,
+  { schema: HANDOFF, phase: 'Handoff', label: 'handoff' },
+)
+if (!hand || !hand.branch) return `blocked: handoff step returned nothing; the presentation for "${feature}" may not be committed or pushed${hand && hand.problem ? `: ${hand.problem}` : ''}`
+if (!hand.tests_pass) return `blocked: checks fail on ${hand.branch}${hand.head_sha ? ` at ${hand.head_sha}` : ''}: ${hand.problem || 'no details'}`
+
+const partial = unverified.length || estimated.length
+const summary = partial
+  ? `unverified: presentation for "${feature}" built and documented, but not fully verified.${unverified.length ? `\nchecks that returned nothing: ${unverified.join(', ')}` : ''}${estimated.length ? `\nestimated, not measured: ${estimated.join(', ')}` : ''}\nRerun the missing checks before marking it done.\nBuild: ${built}\nDocs: ${JSON.stringify(docs)}`
+  : `done: presentation for "${feature}" built, verified and documented.\nBuild: ${built}\nDocs: ${JSON.stringify(docs)}`
+return {
+  status: partial ? 'unverified' : 'done',
+  summary,
+  build: built,
+  docs,
+  unverified,
+  estimated,
+  handoff: {
+    from: 'graphics-programmer:present-feature',
+    branch: hand.branch,
+    pr: hand.pr || '',
+    head_sha: hand.head_sha || '',
+    tests_pass: true,
+    docs: pages,
+    undocumented: Array.isArray(docs.undocumented) ? docs.undocumented : [],
+    notes: [
+      ...(unverified.length ? [`checks that returned nothing: ${unverified.join(', ')}`] : []),
+      ...(estimated.length ? [`estimated, not measured: ${estimated.join(', ')}`] : []),
+    ],
+  },
+  next: `${partial ? 'rerun the unverified or estimated checks first, then ' : ''}ship it without rebuilding: /engineering-practices:deliver-package { wp: "<the package>", prior: <this result> }; with no work package, /engineering-practices:land-pr { branch: "${hand.branch}" }`,
 }
-return `done: presentation for "${feature}" built, verified and documented.\nBuild: ${built}\nDocs: ${docs}`
 })(RUN.agent, RUN.phase, RUN.log)]); return RUN.finish(RUN_OUT)

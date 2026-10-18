@@ -44,7 +44,7 @@ The skills group into three concerns.
 | Field | Value |
 |---|---|
 | `name` | `graphics-programmer` |
-| `version` | `0.6.0` |
+| `version` | `0.7.0` |
 | `author.name` | `opsroller` |
 | `repository` | `https://github.com/opsroller/graphics-programmer` |
 | `license` | `GPL-2.0-or-later` |
