@@ -341,7 +341,7 @@ if (plan.measurable) {
   const measured = await agent(
     `You are the graphics-programmer measuring the options for "${question}". Engine: ${plan.engine}. Tiers: ${plan.tiers}.\n` +
     `Options and their estimates:\n${JSON.stringify(evaluated.filter((e) => !e.unverified), null, 2)}\n` +
-    'Follow frame-budget-profiling. For each option in turn, never two at once on the same device, build a small probe scene in a scratch location outside the project tree and capture its cost in ms on each tier\'s weakest device or stand-in in a release-like build (median and p95). Report one measurement per option you captured; leave out any you could not, and their estimates stand. Do NOT modify project files.',
+    'Follow frame-budget-profiling. For each option in turn, never two at once on the same device, build a small probe scene in a scratch location outside the project tree and capture its cost in ms on each tier\'s weakest device or stand-in in a release-like build (median and p95). A machine with no GPU is not a stand-in: a probe rendered in software there (graphics-programmer headless-rendering skill) can show that a feature works, never what it costs. Report one measurement per option you captured; leave out any you could not, and their estimates stand. Do NOT modify project files.',
     { schema: MEASURE, phase: 'Measure', label: 'measure' },
   )
   for (const m of (measured && measured.measurements) || []) {

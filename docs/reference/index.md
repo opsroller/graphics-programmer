@@ -26,6 +26,7 @@ The skills group into three concerns.
 - [frame-budget-profiling](skill-frame-budget-profiling.md): budgets in ms, CPU/GPU bottlenecks, stutter.
 - [platform-scaling](skill-platform-scaling.md): device tiers, quality levers, thermal, mobile GPUs.
 - [web-rendering](skill-web-rendering.md): canvas, pixel ratio, context loss, browser input.
+- [headless-rendering](skill-headless-rendering.md): rendering in a container or CI with no GPU or display, and what its frame times mean.
 
 ## Workflows
 
@@ -36,17 +37,18 @@ The skills group into three concerns.
 | `feel-and-perf-check` | `{ scope, targets? }` | [feel-and-perf-check](workflow-feel-and-perf-check.md) |
 | `renderer-decision` | `{ question, tiers?, wants?, decision? }` | [renderer-decision](workflow-renderer-decision.md) |
 | `implement-renderer-system` | `{ system, spec, plan?, wp?, branch?, pr? }` | [implement-renderer-system](workflow-implement-renderer-system.md) |
+| `build-measurement-tool` | `{ tool, spec, targets?, wp?, branch?, pr? }` | [build-measurement-tool](workflow-build-measurement-tool.md) |
 
 ## plugin.json fields
 
 | Field | Value |
 |---|---|
 | `name` | `graphics-programmer` |
-| `version` | `0.5.0` |
+| `version` | `0.6.0` |
 | `author.name` | `opsroller` |
 | `repository` | `https://github.com/opsroller/graphics-programmer` |
 | `license` | `GPL-2.0-or-later` |
-| `keywords` | `role`, `job-function`, `graphics`, `rendering`, `camera`, `animation`, `input`, `performance`, `profiling`, `mobile`, `web` |
+| `keywords` | `role`, `job-function`, `graphics`, `rendering`, `camera`, `animation`, `input`, `performance`, `profiling`, `mobile`, `web`, `benchmark`, `headless` |
 
 ## Sources
 
