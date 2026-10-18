@@ -239,7 +239,7 @@ const readabilityTask = (frames) => {
     : `The project has no automated visual acceptance checks; judge by eye on these frames and their greyscale copies: ${JSON.stringify(frames)}, and say in minor that the criteria are unchecked by script.`
   return `${base} ${auto} Criteria: ${JSON.stringify(strings(acceptance.criteria))}. Set measured=true. Skill: technical-artist visual-acceptance-checks.`
 }
-const perfTask = (t) => `Measure frame time (median, p95, p99) for the feature on ${t} in a release-like build against the project budget. ${hook ? `Use the measurement hook: ${hook}. ` : ''}Frame times from a software renderer or a container are not device numbers (headless-rendering skill): report them, but set measured=false. If no device or build is available, estimate from the scene and code, put the estimate in minor and set measured=false. Skill: frame-budget-profiling.`
+const perfTask = (t) => `Measure frame time (median, p95, p99) for the feature on ${t} in a release-like build against the project budget. ${hook ? `Use the measurement hook: ${hook}. ` : ''}Frame times from a software renderer or a container are not device numbers (headless-rendering skill): report them, but set measured=false. If no device or build is available, estimate from the scene and code, put the estimate in minor and set measured=false. If the backend reports no GPU timing (e.g. Metal, some web and mobile drivers), record gpu_timing unavailable: CPU frame time then includes the drawable, vsync or present wait, so judge the budget on total frame time (uncapped where possible), take GPU cost from the platform GPU profiler if reachable, and mark the bound side as inferred. Skill: frame-budget-profiling.`
 
 let round = 0
 let open = []

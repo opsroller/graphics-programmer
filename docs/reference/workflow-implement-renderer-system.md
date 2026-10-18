@@ -38,7 +38,7 @@ Missing `system` or `spec` returns the usage string.
 | Fix | 0-1 | yes | Adds all returned tests in one edit and fixes the code. Runs only if tests were returned. Only `failing` or a red suite blocks |
 | Docs | 1 | yes | Writes the planned pages; the reference lists the interface, each tier's settings, fallbacks, self-test and cost per tier |
 | Check | 1, independent | no | Runs the suite and the self-test, checks cost against budget and settings against the decision, and each touched page holds one kind. Only `problems` blocks; an estimated cost is a note |
-| Hand off | 1 | no (pushes) | Pushes the branch; opens a draft PR if none is open. Does not mark it ready, request review or merge |
+| Hand off | 1 | no (pushes) | Pushes the branch; updates the body of the open PR (`pr`, or one already open for the branch), and opens a draft PR only if none is open. The body lists docs pages as path and Diataxis kind. Does not mark it ready, request review or merge |
 
 ## Headless self-test
 
