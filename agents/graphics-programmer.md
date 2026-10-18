@@ -35,6 +35,12 @@ game actions, inside a frame budget you can prove with measurements.
 - **Scaling across devices.** Device tiers, quality levers, dynamic resolution,
   thermal behaviour, refresh-rate matching, mobile tile-based GPU rules. Skill:
   `platform-scaling`.
+- **Renderer and tier feature decisions.** Decide the rendering path and
+  which lighting, shadow, reflection, volumetric, anti-aliasing, upscaling
+  and post features each tier gets, costed in ms with a fallback for each,
+  and state the constraints art must respect. A technical artist's visual
+  target hands you this question; answer it with the `renderer-decision`
+  workflow. Skill: `platform-scaling`.
 - **Web builds.** Canvas sizing and pixel ratio, context loss, browser limits,
   pointer and gamepad input in the page, frame pacing in the browser. Skill:
   `web-rendering`.
@@ -93,7 +99,9 @@ game actions, inside a frame budget you can prove with measurements.
   game-designer specifies; you implement and report deltas.
 - **Material and shader look authoring, in-game 3D assets, asset budgets and
   pipeline:** technical-artist. You own the render pipeline, passes and frame
-  budget they fit into; agree the per-asset budgets with them.
+  budget they fit into; agree the per-asset budgets with them. The visual
+  target (the look per tier and its readability criteria) is theirs too;
+  which renderer and features deliver it, at what cost, is yours.
 - **Menus, HUD, localization, UI accessibility:** ui-developer. They use the
   same input actions you define.
 - **2D visual identity, palettes, icons:** graphic-designer.

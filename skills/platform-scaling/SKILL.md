@@ -84,6 +84,16 @@ frame-rate-dependent motion (see `event-presentation`).
 - Storing depth and multisample attachments every frame on mobile.
 - Lowering quality so far on low tier that gameplay elements disappear.
 
+## Deciding rendering features per tier
+
+When someone asks which rendering features (lighting, shadows,
+reflections, volumetrics, anti-aliasing, upscaling, post) each tier gets,
+often from a technical artist's visual target, run the
+`renderer-decision` workflow: list realistic options, cost each on the
+weakest device of each tier, decide per tier with a fallback for every
+feature, and check the sums fit the frame budget before anyone builds
+content for it. Label any cost you did not measure as an estimate.
+
 ## Documentation this work needs
 
 Tier definitions and levers: **reference** ("Device tiers and quality

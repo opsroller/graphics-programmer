@@ -35,6 +35,15 @@
 - **Android vitals: Slow sessions** - https://developer.android.com/games/optimize/vitals/slow-session - slow-frame and slow-session thresholds; frame pacing.
 - **WebGL Best Practices (Jeff Gilbert)** - https://hackmd.io/@jgilbert/WebGLBestPractices - sync calls, context loss, device pixel ratio, texture formats, shader compile, limits.
 
+## Engine and platform quality settings
+
+- **Epic Games, Scalability reference for Unreal Engine** - https://dev.epicgames.com/documentation/en-us/unreal-engine/scalability-reference-for-unreal-engine - quality groups as independent levers (view distance, shadows, GI, reflections, post, effects) with per-level settings; informed the per-feature, per-tier decision in `renderer-decision`.
+- **Epic Games, Setting up device profiles in Unreal Engine** - https://dev.epicgames.com/documentation/en-us/unreal-engine/setting-up-device-profiles-in-unreal-engine - mapping device classes to quality settings; tiers chosen by device capability.
+- **Godot Engine, Overview of renderers** - https://docs.godotengine.org/en/stable/tutorials/rendering/renderers.html - an engine's rendering paths differ in feature set and platform support; the decision starts from which path each target can run.
+- **Unity, Quality settings** - https://docs.unity3d.com/2020.3/Documentation/Manual/class-QualitySettings - named quality levels per platform as bundles of independent settings.
+- **Android, Performance class** - https://developer.android.com/topic/performance/performance-class - grouping devices by declared capability rather than model name.
+- **Apple, Metal feature set tables** - https://developer.apple.com/metal/capabilities/ - feature support varies by GPU family; check support per target before choosing a technique.
+
 ## Standards and guidelines
 
 - **W3C Pointer Events Level 3** - https://www.w3.org/TR/pointerevents3/ - unified mouse/touch/pen model, pointer capture, cancel, touch-action, coalesced and predicted events.
