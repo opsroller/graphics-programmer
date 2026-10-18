@@ -23,7 +23,7 @@ The skills group into three concerns.
 - [input-handling](skill-input-handling.md): devices to actions, remapping, cancel handling.
 
 **How fast it runs, everywhere**
-- [frame-budget-profiling](skill-frame-budget-profiling.md): budgets in ms, CPU/GPU bottlenecks, stutter.
+- [frame-budget-profiling](skill-frame-budget-profiling.md): budgets in ms, CPU/GPU bottlenecks, stutter, backends with no GPU timing.
 - [platform-scaling](skill-platform-scaling.md): device tiers, quality levers, thermal, mobile GPUs.
 - [web-rendering](skill-web-rendering.md): canvas, pixel ratio, context loss, browser input.
 - [headless-rendering](skill-headless-rendering.md): rendering in a container or CI with no GPU or display, and what its frame times mean.
@@ -34,7 +34,7 @@ The skills group into three concerns.
 |---|---|---|
 | `present-feature` | `{ feature, spec?, targets?, capture?, perf?: { defer_to?, hook? } }` | [present-feature](workflow-present-feature.md) |
 | `investigate-frame-time` | `{ symptom, target, scenario? }` | [investigate-frame-time](workflow-investigate-frame-time.md) |
-| `feel-and-perf-check` | `{ scope, targets? }` | [feel-and-perf-check](workflow-feel-and-perf-check.md) |
+| `feel-and-perf-check` | `{ scope, targets?, benchmark?: { command?, scenes?, tiers?, resolutions?, runs?, warmup? } }` | [feel-and-perf-check](workflow-feel-and-perf-check.md) |
 | `renderer-decision` | `{ question, tiers?, wants?, decision? }` | [renderer-decision](workflow-renderer-decision.md) |
 | `implement-renderer-system` | `{ system, spec, plan?, wp?, branch?, pr? }` | [implement-renderer-system](workflow-implement-renderer-system.md) |
 | `build-measurement-tool` | `{ tool, spec, targets?, wp?, branch?, pr? }` | [build-measurement-tool](workflow-build-measurement-tool.md) |
@@ -44,7 +44,7 @@ The skills group into three concerns.
 | Field | Value |
 |---|---|
 | `name` | `graphics-programmer` |
-| `version` | `0.8.0` |
+| `version` | `0.9.0` |
 | `author.name` | `opsroller` |
 | `repository` | `https://github.com/opsroller/graphics-programmer` |
 | `license` | `GPL-2.0-or-later` |

@@ -14,7 +14,7 @@ Target frame rates and device tiers; a release-like build; target hardware.
 
 ## Outputs
 
-Budgets in ms and sub-budgets per tier; repeatable scenario; before/after reports with median, p95, p99, bound side.
+Budgets in ms and sub-budgets per tier; repeatable scenario; before/after reports with median, p95, p99, bound side. On a backend with no GPU timing (e.g. Metal): `gpu_timing: unavailable`, budgets judged on total frame time (uncapped where possible), GPU cost from the platform GPU profiler, bound side marked inferred.
 
 ## Quality bar
 

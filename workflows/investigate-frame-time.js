@@ -158,7 +158,7 @@ if (!plan) return 'blocked: planning failed (no plan returned)'
 if (!plan.canMeasure) return `blocked: no ${target} device or release-like build is reachable, so nothing can be measured. Scenario prepared: ${plan.scenario}`
 
 const measure = (label) => agent(
-  `You are the graphics-programmer. Run this scenario on ${target} with ${plan.build || 'a release-like build'} and report frame time per the frame-budget-profiling skill (median, p95, p99, worst, frames over ${plan.budgetMs} ms, CPU and GPU ms). Scenario: ${plan.scenario}. Read only; do not edit files.`,
+  `You are the graphics-programmer. Run this scenario on ${target} with ${plan.build || 'a release-like build'} and report frame time per the frame-budget-profiling skill (median, p95, p99, worst, frames over ${plan.budgetMs} ms, CPU and GPU ms). If the backend reports no GPU timing (e.g. Metal, some web and mobile drivers), say gpu_timing unavailable: CPU frame time then includes the drawable, vsync or present wait, so judge the budget on total frame time (uncapped where possible) and take GPU cost from the platform GPU profiler if reachable (frame-budget-profiling skill, "When the backend reports no GPU timing"). Scenario: ${plan.scenario}. Read only; do not edit files.`,
   { schema: MEASURE, phase: label === 'baseline' ? 'Measure' : 'Fix', label },
 )
 

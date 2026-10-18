@@ -149,7 +149,7 @@ const PLAN = {
 const BUILD = { type: 'object', properties: { green: { type: 'boolean' }, testFile: { type: 'string' }, selfTest: { type: 'string', description: 'the self-test command and its output summary' }, branch: { type: 'string' }, measured: { type: 'string', description: 'cost per tier in ms with device and capture, or "estimate: ..."' }, non_original: { type: 'array', items: { type: 'string' } }, notes: { type: 'string' } }, required: ['green', 'testFile', 'selfTest', 'branch'] }
 const ATTACK = { type: 'object', properties: { failures: { type: 'array', items: { type: 'object', properties: { problem: { type: 'string' }, testCode: { type: 'string' } }, required: ['problem', 'testCode'] } }, notes: { type: 'array', items: { type: 'string' } } }, required: ['failures'] }
 const FIX = { type: 'object', properties: { green: { type: 'boolean' }, failing: { type: 'array', items: { type: 'string' } }, notes: { type: 'array', items: { type: 'string' } } }, required: ['green', 'failing'] }
-const DOCS = { type: 'object', properties: { pages: { type: 'array', items: { type: 'string' } }, undocumented: { type: 'array', items: { type: 'string' } } }, required: ['pages', 'undocumented'] }
+const DOCS = { type: 'object', properties: { pages: { type: 'array', items: { type: 'object', properties: { path: { type: 'string' }, kind: { type: 'string', enum: ['tutorial', 'how-to', 'reference', 'explanation'] } }, required: ['path', 'kind'] } }, undocumented: { type: 'array', items: { type: 'string' } } }, required: ['pages', 'undocumented'] }
 const CHECK = { type: 'object', properties: { pass: { type: 'boolean' }, problems: { type: 'array', items: { type: 'string' } }, measured: { type: 'string' }, notes: { type: 'array', items: { type: 'string' } } }, required: ['pass', 'problems'] }
 const HANDOFF = { type: 'object', properties: { branch: { type: 'string' }, pr: { type: 'string' }, head_sha: { type: 'string' }, tests_pass: { type: 'boolean' }, problem: { type: 'string' } }, required: ['branch', 'tests_pass'] }
 
@@ -227,13 +227,20 @@ const docs = await agent(
   DOCS_FRAGMENT + ' Also update the project contracts doc if the public interface is used by another role. Commit with a docs: or the feature commit per the project convention.',
   { schema: DOCS, phase: 'Docs', label: 'docs' })
 if (!docs) return { status: 'blocked', reason: 'docs step failed; code without its docs is not done' }
+// Pages come back as { path, kind }; accept a bare path string too, so a
+// brief never prints "[object Object]".
+const docPages = (Array.isArray(docs.pages) ? docs.pages : []).map((p) => (p && typeof p === 'object'
+  ? { path: String(p.path || p.page || ''), kind: String(p.kind || '') }
+  : { path: String(p), kind: '' })).filter((p) => p.path)
+const docPaths = docPages.map((p) => p.path)
+const docList = docPages.map((p) => (p.kind ? `${p.path} (${p.kind})` : p.path)).join(', ')
 
 phase('Check')
 const check = await agent(
   `You are a second graphics-programmer giving an independent check of the "${system}" work, which you did not write. 1) Run the full test suite and the headless self-test (${plan.selfTest}) with the project's commands. 2) Confirm the cost per tier is within the budget (${plan.budget}); the build reported ${build.measured || 'no measurement'}. A cost labelled estimate is a note, not a problem; a measured cost over budget is a problem. 3) Confirm each tier's settings in the code and data match the decision in ${spec}. ` +
-  `4) For each touched docs page (${(docs.pages || []).join(', ') || 'none reported'}): it holds one Diataxis kind only, starts with a line saying its kind and audience, its title follows the pattern, and it links to the related pages of other kinds. Do not edit; report problems and notes separately. ` + NOTES_RULE + ' Set pass to true exactly when problems is empty.',
+  `4) For each touched docs page (${docList || 'none reported'}): it holds one Diataxis kind only, starts with a line saying its kind and audience, its title follows the pattern, and it links to the related pages of other kinds. Do not edit; report problems and notes separately. ` + NOTES_RULE + ' Set pass to true exactly when problems is empty.',
   { schema: CHECK, phase: 'Check', label: 'check', independent: true })
-if (!check) return { status: 'unverified', reason: 'check agent failed', docs: docs.pages, unverifiedLenses: unverified, notes }
+if (!check) return { status: 'unverified', reason: 'check agent failed', docs: docPaths, unverifiedLenses: unverified, notes }
 const problems = strings(check.problems)
 strings(check.notes).forEach((n) => notes.push('check: ' + n))
 if (problems.length) return { status: 'blocked', open: problems, notes }
@@ -241,7 +248,7 @@ if (!check.pass) return { status: 'blocked', open: ['check reported a failure wi
 
 phase('Hand off')
 const handoff = await agent(
-  `Hand off the "${system}" work. ${where} Make sure every commit is pushed to the branch (${build.branch}); if no pull request is open for it, open a draft PR titled as a Conventional Commit${wp ? ` with "Refs: ${wp}" in the body` : ''}, listing the docs pages by Diataxis kind, the self-test command and the cost per tier (measured or estimate)${ambiguous.length ? ', and the defaults taken for ambiguous points' : ''}. Do not mark it ready, request review or merge: the engineering-practices workflow named in the result does that. Follow the engineering-practices git-workflow skill. Return the branch, PR URL, head commit SHA, and whether the full suite and the self-test pass on that head.`,
+  `Hand off the "${system}" work. ${where} Make sure every commit is pushed to the branch (${build.branch}). Look for an open pull request for that branch first${args.pr ? ` (the caller names ${args.pr})` : ''}: an earlier push or step may already have opened it. If one is open, update its body; open a draft PR titled as a Conventional Commit only if none is open. Either way the body ${wp ? `carries "Refs: ${wp}" and ` : ''}lists the docs pages by Diataxis kind (${docList || 'none reported'}), the self-test command and the cost per tier (measured or estimate)${ambiguous.length ? ', and the defaults taken for ambiguous points' : ''}; keep any lines already in an existing body that are not about these. Do not mark it ready, request review or merge: the engineering-practices workflow named in the result does that. Follow the engineering-practices git-workflow skill. Return the branch, PR URL, head commit SHA, and whether the full suite and the self-test pass on that head.`,
   { schema: HANDOFF, phase: 'Hand off', label: 'handoff' })
 if (!handoff || !handoff.branch) return { status: 'blocked', reason: 'hand-off failed; the work is committed on ' + build.branch + ' but may not be pushed', notes }
 if (!handoff.tests_pass) return { status: 'blocked', open: ['suite or self-test not green on the pushed head' + (handoff.problem ? ': ' + handoff.problem : '')], notes }
@@ -254,7 +261,7 @@ const handoffOut = {
   pr: handoff.pr || '',
   head_sha: handoff.head_sha || '',
   tests_pass: true,
-  docs: docs.pages || [],
+  docs: docPaths,
   undocumented: docs.undocumented || [],
   non_original: strings(build.non_original),
   notes,
@@ -268,7 +275,7 @@ return {
   unverifiedLenses: unverified,
   selfTest: plan.selfTest,
   measured,
-  docs: docs.pages,
+  docs: docPaths,
   undocumented: docs.undocumented,
   notes,
   // An unverified run returns no handoff, so deliver-package cannot ship it

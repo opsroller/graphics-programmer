@@ -53,6 +53,31 @@ the slowest stage sets the frame time, so locate it before optimising.
 7. **Report** before/after: device, build, scenario, median/p95/p99, bound
    side, change made.
 
+## When the backend reports no GPU timing
+
+Some graphics backends expose no GPU timestamps to the engine (Metal in
+several engines, some web and mobile drivers). There, the engine's GPU
+time reads zero or is missing, and its **CPU frame time includes the wait
+for a drawable, vsync or present**: a GPU-bound frame shows up as a long
+"CPU" frame. To judge a budget anyway:
+
+1. **Record `gpu_timing: unavailable`** with every number from that
+   backend, so nobody reads its CPU time as CPU work.
+2. **Judge the budget on total frame time** percentiles (p50/p95/p99,
+   worst), not the CPU/GPU split. Measure **uncapped** (vsync off, no frame
+   cap) where the platform allows it; a capped run only shows whether the
+   target rate holds, not the headroom.
+3. **Get GPU cost from the platform's own tools** when one is reachable:
+   the OS GPU profiler or frame capture (for Metal, Xcode Instruments' Metal
+   System Trace or a GPU frame capture; for the web, the browser's
+   performance panel). Record which tool gave the number.
+4. **Infer the bound side** with the quick tests above (shrink render
+   resolution, freeze logic, skip draw submission) and mark it **inferred**,
+   naming the test. Engine-side CPU markers around logic and draw
+   submission, which exclude the wait, give the real CPU share.
+5. **Do not subtract a guessed wait** from CPU time or report the wait as
+   CPU cost.
+
 ## Hitches and stutter (frame pacing)
 
 - A steady 30 can feel better than an unsteady 45. Look at frame-to-frame
@@ -89,7 +114,7 @@ the slowest stage sets the frame time, so locate it before optimising.
 - [ ] Budget (ms) and sub-budgets per tier
 - [ ] Repeatable scenario on target hardware, release-like build
 - [ ] Median, p95, p99, worst; frames over budget
-- [ ] Bound side identified with evidence
+- [ ] Bound side identified with evidence (marked inferred when the backend has no GPU timing)
 - [ ] One change per measurement
 - [ ] Soak test for thermal behaviour
 - [ ] Before/after report
@@ -98,6 +123,7 @@ the slowest stage sets the frame time, so locate it before optimising.
 
 - Optimising what is easy to see rather than what is on the critical path.
 - Quoting average FPS from a desktop editor.
+- Reading CPU frame time as CPU work on a backend with no GPU timing, where it includes the drawable or vsync wait.
 - Testing for one minute on a cool phone.
 - Micro-optimising shaders while the frame is CPU-bound on draw submission.
 
