@@ -26,13 +26,14 @@ different need.
 - **Learning the plugin?** Start with the tutorial
   [Build your first presented event](docs/tutorials/first-task.md). It walks
   one event from contract to measured, documented animation.
-- **Doing a job?** The how-to guides cover the four workflows and two common
+- **Doing a job?** The how-to guides cover the five workflows and two common
   tasks:
   [present a game feature](docs/how-to/how-to-present-a-game-feature.md),
   [fix a frame-time problem](docs/how-to/how-to-fix-a-frame-time-problem.md),
   [check work before marking it done](docs/how-to/how-to-check-work-before-marking-it-done.md),
   [set frame budgets for device tiers](docs/how-to/how-to-set-frame-budgets-for-device-tiers.md),
   [decide rendering features for quality tiers](docs/how-to/how-to-decide-rendering-features-for-quality-tiers.md),
+  [build a rendering system from a renderer decision](docs/how-to/how-to-build-a-rendering-system-from-a-renderer-decision.md),
   [add an input device](docs/how-to/how-to-add-an-input-device.md).
 - **Looking something up?** The [reference](docs/reference/index.md)
   describes the agent, each of the seven skills and each workflow's
