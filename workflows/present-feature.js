@@ -209,6 +209,7 @@ const deferTo = String(perfArg.defer_to || measurement.defer_to || '')
 const placeholders = Array.isArray(plan.placeholders) ? plan.placeholders.filter((p) => p && p.key) : []
 const notes = []
 if (wantCapture && !look.possible) notes.push(`look-dev frames not captured: ${look.why || 'the plan found no way to render'}`)
+if (!wantCapture) notes.push('look-dev capture off by the caller (capture: false); readability judged from scene and code')
 
 const captureBrief = (before) => `Capture the look-dev frames for "${feature}" ${before ? 'before the change' : 'after the change'}, following the technical-artist lookdev-capture skill (frames, determinism, verification) and the graphics-programmer headless-rendering skill (binary, software driver, virtual display): ${JSON.stringify(strings(look.frames))} with ${look.command || 'the project\'s headless render command'}, into ${look.outDir || 'a frames directory outside the repository'}. Name each file <scene>-<camera>-<beat>-<renderer or tier>-${before ? 'before' : 'after'}. ${before ? 'Render from the base commit (a separate worktree of the default branch) so the frames show the state before this work; where the feature does not exist there yet, capture the same scene and camera so the after frames show what it adds. ' : 'Render from the working tree with the same command, size, frame and driver as the before frames. '}Check every frame is the requested size and is not black, blank or captured before the scene settled; re-capture any that fail. Write a greyscale copy of each. Change no project files except the frames. Return the frame files with what each shows and the driver that rendered it, and anything you could not capture in problems.`
 
@@ -245,11 +246,15 @@ let open = []
 let unverified = []
 let estimated = []
 let after = null
+// The run.only labels that rerun what the last Verify round left unverified
+// or estimated.
+let rerun = []
 while (true) {
   let frames = []
+  const tag = (name) => (round ? `${name} round ${round + 1}` : name)
   if (capturing) {
     phase('Capture')
-    after = await agent(captureBrief(false), { schema: FRAMES, phase: 'Capture', label: round ? `capture round ${round + 1}` : 'capture' })
+    after = await agent(captureBrief(false), { schema: FRAMES, phase: 'Capture', label: tag('capture') })
     frames = after ? strings(after.frames) : []
   }
   const checks = [
@@ -263,11 +268,15 @@ while (true) {
   phase('Verify')
   const results = await parallel(checks.map(([area, task]) => () =>
     agent(`You are a graphics-programmer reviewer. Read only; do not edit any file. Feature: "${feature}". ${task} Return blockers (must fix before merge) and minor issues, each with file and concrete change.`,
-      { schema: FINDINGS, phase: 'Verify', label: round ? `${area} round ${round + 1}` : area, independent: true }).then((r) => (r ? { ...r, area } : { area, crashed: true }))))
+      { schema: FINDINGS, phase: 'Verify', label: tag(area), independent: true }).then((r) => (r ? { ...r, area } : { area, crashed: true }))))
   unverified = results.filter((r) => r.crashed).map((r) => r.area)
   if (capturing && !frames.length) unverified.push(`look: after frames missing (${after ? strings(after.problems).join('; ') || 'none returned' : 'capture step returned nothing'})`)
   open = results.filter((r) => !r.crashed).flatMap((r) => r.blockers.map((b) => `${r.area}: ${b}`))
   estimated = results.filter((r) => !r.crashed && r.measured === false).map((r) => r.area)
+  rerun = [
+    ...(capturing && !frames.length ? [tag('capture'), tag('look')] : []),
+    ...results.filter((r) => r.crashed || r.measured === false).map((r) => tag(r.area)),
+  ]
   if (estimated.length) log(`estimated, not measured: ${estimated.join(', ')}`)
   if (!open.length || round >= 2) break
   round += 1
@@ -286,6 +295,7 @@ if (open.length) return `blocked after ${round} fix rounds; open blockers:\n- ${
 const isPerf = (a) => a.startsWith('perf: ')
 const followUps = deferTo ? estimated.filter(isPerf).map((a) => `${a}: estimated here; measure on the target with ${deferTo}`) : []
 const notMeasured = estimated.filter((a) => !(deferTo && isPerf(a)))
+const rerunLabels = rerun.filter((l) => !(deferTo && isPerf(l)))
 
 phase('Docs')
 const DOCS = { type: 'object', properties: { pages: { type: 'array', items: { type: 'string' } }, undocumented: { type: 'array', items: { type: 'string' } } }, required: ['pages'] }
@@ -336,7 +346,7 @@ if (partial) {
     frames,
     pushed,
     notes,
-    next: `rerun the checks listed (run.only with their labels and run.results from this run${notMeasured.some(isPerf) ? '; for perf with no device, pass perf.defer_to naming the benchmark or measurement package that will measure it, or build one with /graphics-programmer:build-measurement-tool' : ''}); the run that verifies them returns the handoff`,
+    next: `rerun the checks listed with run.only: ${JSON.stringify(rerunLabels)} and run.results from this run${notMeasured.some(isPerf) ? '; for perf with no device, pass perf.defer_to naming the benchmark or measurement package that will measure it, or build one with /graphics-programmer:build-measurement-tool' : ''}; the run that verifies them returns the handoff`,
   }
 }
 return {

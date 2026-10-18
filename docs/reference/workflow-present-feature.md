@@ -95,10 +95,10 @@ After the handoff step the result is an object.
 | `follow_ups` | string[] | Perf checks deferred to the benchmark or measurement package |
 | `placeholders` | object[] | Placeholder art; see Placeholder art |
 | `frames` | object | `before` and `after` frame files with what each shows |
-| `notes` | string[] | Why frames were not captured, if they were not |
+| `notes` | string[] | Why frames were not captured, or that the caller turned capture off; carried into the handoff |
 | `handoff` | object | Only when `status` is `done`: what deliver-package takes as `prior`; see Handoff |
 | `pushed` | object | Only when `status` is `unverified`: `{ branch, pr, head_sha }` the work was pushed to |
-| `next` | string | `done`: send placeholders to the technical artist, record unrecorded follow-ups, then ship with deliver-package for a work package or land-pr otherwise. `unverified`: the checks to rerun with `run.only` |
+| `next` | string | `done`: send placeholders to the technical artist, record unrecorded follow-ups, then ship with deliver-package for a work package or land-pr otherwise. `unverified`: the exact `run.only` labels to rerun (`capture` and `look` when frames were missing; `<area> round <n>` after a fix round) |
 
 Any failed or unverified step gives a status other than `done`. Checks that
 crash are listed as unverified, never dropped.
