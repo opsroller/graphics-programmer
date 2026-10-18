@@ -46,11 +46,13 @@ other's answer.
 
 | Status | Meaning |
 |---|---|
-| `decided` | Returns `decision`, `perTierTotals`, `unevaluated` (empty), `docProblems` (empty) |
+| `decided` | Returns `decision`, `perTierTotals`, `unevaluated` (empty), `docProblems` (empty), `next` |
 | `pending` | Returns `decision` and `openQuestions`; nothing documented |
 | `blocked` | Planning blocked, no options, decision or docs writer returned nothing, the budget check still fails after one revision (`open`), or docs problems remain |
 | `unverified` | Decided and documented, but an option's evaluation returned nothing (`unevaluated`), or the budget check returned nothing |
 | `done-docs-unverified` | The docs check returned nothing |
+
+The workflow writes docs to the working tree but does not commit, push or open a PR. Every result that gets as far as Docs carries `next`, saying to ship the changes with `/engineering-practices:deliver-package` or `/engineering-practices:small-change`.
 
 Related: [How to decide rendering features for quality tiers](../how-to/how-to-decide-rendering-features-for-quality-tiers.md) · [platform-scaling](skill-platform-scaling.md) · [index](index.md)
 

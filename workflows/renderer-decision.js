@@ -245,6 +245,7 @@ return {
   decision,
   perTierTotals: check.perTierTotals,
   unevaluated,
+  next: 'Docs are in the working tree, not committed. Ship them with /engineering-practices:deliver-package or /engineering-practices:small-change.',
   docProblems: docCheck ? (docCheck.problems || []) : ['docs check returned nothing'],
 }
 })(RUN.agent, RUN.phase, RUN.log)]); return RUN.finish(RUN_OUT)
