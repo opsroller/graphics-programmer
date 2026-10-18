@@ -59,10 +59,12 @@ Related: [How to decide rendering features for quality tiers](../how-to/how-to-d
 
 ## Run modes
 
-Run modes v1. Besides its own args, the workflow takes the optional `run` arg defined in the engineering-practices
+Run modes v2. Besides its own args, the workflow takes the optional `run` arg defined in the engineering-practices
 [workflow run modes reference](https://github.com/opsroller/engineering-practices/blob/main/docs/reference/workflow-run-modes.md):
 `run: { mode: "inline" }` runs every phase in the calling session with no subagents, `run.only` runs chosen phases or steps,
 and `run.from` with `run.results` resumes a stopped run. Without `run`, the workflow and its outputs are as above.
 See [how to run a workflow inline](https://github.com/opsroller/engineering-practices/blob/main/docs/how-to/how-to-run-a-workflow-inline.md).
 
-Step labels, for `run.only` and `run.results`: `plan`, `evaluate:<option>` (one per option named in the plan), `measure`, `decide:1`, `check:1`, and when the first check finds problems `decide:2`, `check:2`; then `docs`, `docs check`.
+Step labels, for `run.only` and `run.results`: `plan`, `evaluate:<option>` (one per option named in the plan), `measure`, `decide:1`, `check:1`, and when the first check finds problems `decide:2`, `check:2`; then `docs`, `docs check`, `docs fix` and `docs recheck` (when the docs check finds problems).
+
+Independent steps: `check:1`, `check:2`, `docs check`, `docs recheck`. They review work this run produced, so in inline mode send each to a reviewer with no part in the work and name them in `run.reviewers`; a step you answer yourself is reported in `self_reviewed`.
