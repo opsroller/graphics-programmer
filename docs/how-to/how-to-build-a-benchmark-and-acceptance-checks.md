@@ -31,7 +31,9 @@ percentiles, checks on captures and a tier feature check.
    `next`. `blocked` with `open` lists only failures of the tool: fix
    them, then resume with `run.from` and `run.results`. `unverified` names
    the attack lenses or check that returned nothing: run those steps
-   again with `run.only`.
+   again with `run.only`. It carries no `handoff`
+   (`pushed` names the branch), so it cannot be shipped until that rerun
+   returns one.
 5. **Send the findings.** Each finding is a check failing on today's
    content, with the role that owns it (often the technical artist). Send
    each one to that role (engineering-practices `peer-coordination`); if

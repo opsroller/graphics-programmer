@@ -32,7 +32,7 @@ The skills group into three concerns.
 
 | Workflow | Args | Page |
 |---|---|---|
-| `present-feature` | `{ feature, spec?, targets? }` | [present-feature](workflow-present-feature.md) |
+| `present-feature` | `{ feature, spec?, targets?, capture?, perf?: { defer_to?, hook? } }` | [present-feature](workflow-present-feature.md) |
 | `investigate-frame-time` | `{ symptom, target, scenario? }` | [investigate-frame-time](workflow-investigate-frame-time.md) |
 | `feel-and-perf-check` | `{ scope, targets? }` | [feel-and-perf-check](workflow-feel-and-perf-check.md) |
 | `renderer-decision` | `{ question, tiers?, wants?, decision? }` | [renderer-decision](workflow-renderer-decision.md) |
@@ -44,7 +44,7 @@ The skills group into three concerns.
 | Field | Value |
 |---|---|
 | `name` | `graphics-programmer` |
-| `version` | `0.7.0` |
+| `version` | `0.8.0` |
 | `author.name` | `opsroller` |
 | `repository` | `https://github.com/opsroller/graphics-programmer` |
 | `license` | `GPL-2.0-or-later` |

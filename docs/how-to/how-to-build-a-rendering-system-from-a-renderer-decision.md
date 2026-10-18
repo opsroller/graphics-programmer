@@ -34,7 +34,9 @@ it in the engine, with tests and a headless self-test.
 4. **Read the status.** `done` carries a `handoff` and `next`. `blocked`
    with `open` lists only failures: fix them, then resume with `run.from`
    and `run.results`. `unverified` names the attack lenses or check that
-   returned nothing: run those steps again with `run.only`.
+   returned nothing: run those steps again with `run.only`. It carries no `handoff`
+   (`pushed` names the branch), so it cannot be shipped until that rerun
+   returns one.
 5. **Replace estimates.** If `measured` says `estimate`, capture each tier
    on its weakest device before content production relies on the budget.
 6. **Land it** with the command in `next`: deliver-package with `prior`
