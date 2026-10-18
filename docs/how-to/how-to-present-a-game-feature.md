@@ -28,16 +28,29 @@ args: { feature: "item pickup", spec: "docs/reference/specs/item-pickup.md", tar
 
 ## Read the result
 
-- `done:` the presentation is built, verified and documented on the work
-  branch. Open the PR as described in `engineering-practices`.
+- `status: "done"`: the presentation is built, verified, documented and
+  pushed; `handoff` names the branch and head commit.
 - `blocked: the event contract is incomplete`: ask the gameplay-programmer
   for the listed fields, then run again.
 - `blocked after N fix rounds`: fix the listed blockers by hand or rerun
   after design changes.
-- `unverified:` a check returned nothing or a perf check was estimated
+- `status: "unverified"` (or a result starting `unverified:`): a check returned nothing or a perf check was estimated
   because no device was reachable. Rerun the listed checks, or measure on
   the device, before merging (see
   [How to fix a frame-time problem](how-to-fix-a-frame-time-problem.md)).
+
+## Ship it
+
+For a work package, pass the whole result as `prior` so it ships without
+being built again:
+
+```
+/engineering-practices:deliver-package { wp: "<the package>", prior: <the result> }
+```
+
+With no work package, land the branch instead:
+`/engineering-practices:land-pr { branch: "<handoff.branch>" }`. The
+result's `next` names both.
 
 See the [present-feature reference](../reference/workflow-present-feature.md)
 for phases and outputs.
