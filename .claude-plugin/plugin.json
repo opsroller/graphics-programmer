@@ -1,14 +1,23 @@
 {
   "name": "graphics-programmer",
   "version": "0.1.0",
-  "description": "Graphics programmer: builds what the player sees in real time: scenes, camera, lighting, animation driven by game events, input, and rendering performance.",
+  "description": "Graphics programmer role: builds what the player sees and touches in real time: scene composition, cameras, game events presented as animation decoupled from logic, input across mouse, touch and controller, frame-time budgets and CPU/GPU profiling, scaling from low-end mobile to desktop, and rendering for web builds.",
   "author": {
     "name": "opsroller"
   },
   "repository": "https://github.com/opsroller/graphics-programmer",
-  "license": "MIT",
+  "license": "GPL-2.0-or-later",
   "keywords": [
     "role",
-    "job-function"
+    "job-function",
+    "graphics",
+    "rendering",
+    "camera",
+    "animation",
+    "input",
+    "performance",
+    "profiling",
+    "mobile",
+    "web"
   ]
 }
