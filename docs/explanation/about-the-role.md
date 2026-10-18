@@ -76,7 +76,13 @@ transform that drew the frame.
   budgets; the graphics programmer owns the render pipeline and the frame
   budget those budgets come from. Shaders sit on the seam: material looks
   belong to the technical artist, pipeline passes to the graphics
-  programmer.
+  programmer. The same seam runs through quality tiers: the technical
+  artist sets the visual target (what each tier should look like and what
+  must stay readable), and the graphics programmer decides which renderer
+  and features deliver it within the frame budget. The technical artist's
+  `visual-target` workflow hands that question over in a defined step and
+  the graphics programmer's `renderer-decision` workflow answers it in the
+  same shape, so neither side decides the other's half.
 - **ui-developer** builds menus and HUD on top of the same input actions.
 - **frontend-web-developer** owns the page around a web build; the graphics
   programmer owns what happens inside the canvas.

@@ -18,6 +18,7 @@
 | Mouse, touch, pen, keyboard, controller to actions | [input-handling](skill-input-handling.md) |
 | Frame-time budgets, CPU/GPU profiling, stutter | [frame-budget-profiling](skill-frame-budget-profiling.md) |
 | Device tiers, quality levers, thermal, mobile GPU rules | [platform-scaling](skill-platform-scaling.md) |
+| Rendering path and features per quality tier, costed with fallbacks | [platform-scaling](skill-platform-scaling.md), [renderer-decision](workflow-renderer-decision.md) |
 | Rendering and input in web builds | [web-rendering](skill-web-rendering.md) |
 
 ## Does not own
@@ -26,7 +27,7 @@
 |---|---|
 | Game rules, systems, state | gameplay-programmer |
 | Feel targets, camera intent, specs | game-designer |
-| Material/shader look, in-game 3D assets, asset budgets, pipeline | technical-artist |
+| Material/shader look, in-game 3D assets, asset budgets, pipeline, the visual target per tier | technical-artist |
 | Menus, HUD, localization, UI accessibility | ui-developer |
 | 2D identity, palette, icons | graphic-designer |
 | Sound | sound-designer |

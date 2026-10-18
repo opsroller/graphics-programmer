@@ -32,6 +32,7 @@ different need.
   [fix a frame-time problem](docs/how-to/how-to-fix-a-frame-time-problem.md),
   [check work before marking it done](docs/how-to/how-to-check-work-before-marking-it-done.md),
   [set frame budgets for device tiers](docs/how-to/how-to-set-frame-budgets-for-device-tiers.md),
+  [decide rendering features for quality tiers](docs/how-to/how-to-decide-rendering-features-for-quality-tiers.md),
   [add an input device](docs/how-to/how-to-add-an-input-device.md).
 - **Looking something up?** The [reference](docs/reference/index.md)
   describes the agent, each of the seven skills and each workflow's
