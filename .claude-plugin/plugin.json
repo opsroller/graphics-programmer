@@ -1,6 +1,6 @@
 {
   "name": "graphics-programmer",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Graphics programmer role: builds what the player sees and touches in real time: scene composition, cameras, game events presented as animation decoupled from logic, input across mouse, touch and controller, frame-time budgets and CPU/GPU profiling, scaling from low-end mobile to desktop, and rendering for web builds.",
   "author": {
     "name": "opsroller"
