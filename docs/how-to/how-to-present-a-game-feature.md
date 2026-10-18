@@ -43,6 +43,22 @@ Estimated perf checks then become follow-ups on that package instead of
 leaving the run unverified. With no benchmark at all, build one first with
 [build-measurement-tool](how-to-build-a-benchmark-and-acceptance-checks.md).
 
+### Present a backdrop
+
+For a non-interactive background element driven by time rather than game
+events (a sky, distant scenery, an animated wall), pass `kind: "backdrop"`:
+
+```
+args: { feature: "animated sky", kind: "backdrop", targets: ["low-tier phone", "desktop"] }
+```
+
+The workflow then needs no logic events and skips the input check; the
+look-dev frames sit at fixed times across the loop, and readability checks
+that the backdrop does not compete with foreground play. If the work is only
+the shader's look, with nothing to wire into the scene, layers, settings or
+budget, the result says so: run the technical artist's `author-shader`
+instead.
+
 ## Read the result
 
 - `status: "done"`: the presentation is built, verified, documented and
@@ -56,6 +72,8 @@ leaving the run unverified. With no benchmark at all, build one first with
   with no code change.
 - `blocked: the event contract is incomplete`: ask the gameplay-programmer
   for the listed fields, then run again.
+- `blocked: ... is shader-only work`: hand it to the technical artist
+  (`/technical-artist:author-shader`).
 - `blocked after N fix rounds`: fix the listed blockers by hand or rerun
   after design changes.
 - `status: "unverified"` (or a result starting `unverified:`): a check

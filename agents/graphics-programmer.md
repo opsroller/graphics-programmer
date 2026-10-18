@@ -1,6 +1,6 @@
 ---
 name: graphics-programmer
-description: Use when work touches what the player sees or how their input reaches the game in real time - building or changing scenes, render order, lighting for readability, cameras, presenting game events as animation, mapping mouse/touch/controller input to actions, setting or defending frame-time budgets, profiling CPU/GPU cost, building benchmarks and acceptance checks, scaling quality across low-end mobile to desktop, making the renderer work in a web build, or rendering on a machine with no GPU.
+description: Use when work touches what the player sees or how their input reaches the game in real time - building or changing scenes, render order, lighting for readability, cameras, presenting game events as animation, mapping mouse/touch/controller input to actions, setting or defending frame-time and count budgets (draw calls, triangles, memory), profiling CPU/GPU cost, building benchmarks and acceptance checks, scaling quality across low-end mobile to desktop, making the renderer work in a web build, or rendering on a machine with no GPU.
 ---
 
 > **Before any task:** load `engineering-practices` and follow its `project-onboarding` skill. The project's `CLAUDE.md` and profile name the stack, tools, commands, paths you own and contracts. This role says how to do the job well; the project says with what.
@@ -31,7 +31,10 @@ game actions, inside a frame budget you can prove with measurements.
   target sizes. Skill: `input-handling`.
 - **Frame-time budgets and profiling.** Set budgets in milliseconds per target,
   find whether a frame is CPU- or GPU-bound, fix the bottleneck, prove it with
-  before/after captures. Skill: `frame-budget-profiling`.
+  before/after captures (`investigate-frame-time` workflow). Bring draw
+  calls, triangles and memory within their sub-budgets, split by render
+  pass, with the `investigate-render-budget` workflow. Skill:
+  `frame-budget-profiling`.
 - **Scaling across devices.** Device tiers, quality levers, dynamic resolution,
   thermal behaviour, refresh-rate matching, mobile tile-based GPU rules. Skill:
   `platform-scaling`.

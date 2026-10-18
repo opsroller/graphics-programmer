@@ -1,6 +1,6 @@
 ---
 name: frame-budget-profiling
-description: Use when setting frame-time budgets, profiling CPU or GPU cost, chasing stutter, hitches or a frame-rate regression, or before claiming any presentation work is fast enough.
+description: Use when setting frame-time or count budgets (draw calls, triangles, memory), profiling CPU or GPU cost, chasing stutter, hitches or a frame-rate regression, or before claiming any presentation work is fast enough.
 ---
 
 # Frame-time budgets and profiling
@@ -78,6 +78,30 @@ for a drawable, vsync or present**: a GPU-bound frame shows up as a long
 5. **Do not subtract a guessed wait** from CPU time or report the wait as
    CPU cost.
 
+## Count budgets (draw calls, triangles, memory)
+
+A sub-budget that counts something, not time, is checked the same way:
+fixed scenario, baseline, one change per re-count.
+
+1. **Count where the target's settings run.** Draw calls, triangles and
+   memory as the engine accounts it are the same on a software renderer as
+   on a GPU for the same scene and settings, so a machine with no GPU can
+   count them (`headless-rendering` skill). It cannot time them: its frame
+   times are never measurements. Textures in a compressed format the
+   software driver lacks are stored decompressed there; take texture memory
+   for those from the engine's own accounting or a device.
+2. **Split the count by render pass** (opaque, transparent, shadow, post,
+   UI and any other the renderer has) or, for memory, by category
+   (textures by format, meshes, render targets, buffers). The parts add up
+   to the total.
+3. **Cut the pass that dominates first**: batching, instancing and
+   material merges for opaque; sorting and fewer layers for transparent;
+   fewer casters, cascades or distance for shadow; merged passes for post;
+   atlases and batch-friendly order for UI; sizes, formats and mips for
+   texture memory.
+4. **Report** target, renderer, quality settings, total and the split,
+   before and after. Workflow: `investigate-render-budget`.
+
 ## Hitches and stutter (frame pacing)
 
 - A steady 30 can feel better than an unsteady 45. Look at frame-to-frame
@@ -112,6 +136,7 @@ for a drawable, vsync or present**: a GPU-bound frame shows up as a long
 ## Checklist
 
 - [ ] Budget (ms) and sub-budgets per tier
+- [ ] Count budgets split by render pass or memory category
 - [ ] Repeatable scenario on target hardware, release-like build
 - [ ] Median, p95, p99, worst; frames over budget
 - [ ] Bound side identified with evidence (marked inferred when the backend has no GPU timing)
