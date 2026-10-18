@@ -14,6 +14,7 @@
 |---|---|---|---|---|
 | `feature` | yes | string | - | Short name of the feature to present |
 | `spec` | no | string | found via project profile | Path to the design spec |
+| `kind` | no | string | `event` | `event`: presents logic events. `backdrop`: a non-interactive background element driven by time; no events or input actions, no `input` check, and a readability check that it does not compete with foreground play |
 | `targets` | no | string[] | weakest supported device, desktop | Targets measured in Verify |
 | `capture` | no | boolean | `true` | Capture look-dev frames before and after; `false` for a feature with no visual change |
 | `perf.defer_to` | no | string | found by Plan, or none | Benchmark or measurement package (work package id or tool) that measures the feature on real targets; a perf check estimated here becomes a follow-up on it |
@@ -25,11 +26,11 @@ Missing `feature` returns the usage string.
 
 | Phase | Agents | Edits files | Does |
 |---|---|---|---|
-| Plan | 1 | no | Event contract, beats, scene, camera, input actions, budget impact, files, look-dev frames, visual acceptance checks, measurement hook and deferral target, placeholder art, docs plan (compass), contract gaps |
+| Plan | 1 | no | Event contract (none for a backdrop: its time-driven motion, layer, time source, reduced motion and tier fallback), beats, scene, camera, input actions, budget impact, files, look-dev frames, visual acceptance checks, measurement hook and deferral target, placeholder art, docs plan (compass), contract gaps |
 | Before | 1, when capturing | frames only | Captures the look-dev frames on the base commit (technical-artist `lookdev-capture`, `headless-rendering`) |
 | Build | 1 | yes | Implements the plan, placeholders behind manifest keys, measurement markers; commits |
 | Capture | 1 per round, when capturing | frames only | Captures the same frames on the working tree |
-| Verify | 3 to 5 + one per target, parallel | no | feel, input, readability, look (when frames exist), art hookup (when there are placeholders), perf per target |
+| Verify | 2 to 5 + one per target, parallel | no | feel, input (not for a backdrop), readability, look (when frames exist), art hookup (when there are placeholders), perf per target |
 | Fix | 1 per round, max 2 rounds | yes | Applies all open blockers in one pass |
 | Docs | 1 | yes | Writes the planned Diataxis pages on the same branch |
 | Docs check | 1 | no | One kind per page, titles, links, coverage |
@@ -39,12 +40,12 @@ Missing `feature` returns the usage string.
 
 | Area | Judges | Counts as measured when |
 |---|---|---|
-| `feel` | Beat timing and easing against the spec; skip, fast-forward, reduced motion | always |
-| `input` | Every action on every device family; cancel, focus loss, disconnect; touch targets | always |
-| `readability` | The readable set at the smallest resolution and extreme aspect ratios, in greyscale. Runs the project's visual acceptance checks on the after frames when they exist (failing criteria are blockers, thresholds never change); otherwise judges by eye and says the criteria are unchecked by script | frames were captured, or `capture: false` |
+| `feel` | Beat timing and easing against the spec; skip, fast-forward, reduced motion. Backdrop: motion against the spec, seamless loop, pauses with the game, reduced motion, reads no game state | always |
+| `input` | Every action on every device family; cancel, focus loss, disconnect; touch targets. Not run for a backdrop | always |
+| `readability` | The readable set at the smallest resolution and extreme aspect ratios, in greyscale. Runs the project's visual acceptance checks on the after frames when they exist (failing criteria are blockers, thresholds never change); otherwise judges by eye and says the criteria are unchecked by script. Backdrop: play pieces read over it at every captured time, it stays lower in contrast and saturation than the play area, and nothing in it draws the eye into the play area | frames were captured, or `capture: false` |
 | `look` | Independent before/after look review of every frame and its greyscale copy against the spec, art direction and visual target | frames were captured |
 | `art hookup` | Every visual asset loads by manifest key; every placeholder is registered, marked and named by the convention; what final art must keep is documented | always |
-| `perf: <target>` | Frame time (median, p95, p99) against the budget, through `perf.hook` when there is one | a real device run; software-renderer or container numbers and estimates are not |
+| `perf: <target>` | Frame time (median, p95, p99) against the budget, through `perf.hook` when there is one. Backdrop: also its full-screen cost and overdraw at the highest resolution, and each tier's fallback | a real device run; software-renderer or container numbers and estimates are not |
 
 A `perf` check that is not measured becomes a **follow-up** when there is a
 deferral target (`perf.defer_to`, or one Plan found): the run can be `done`,
@@ -75,6 +76,7 @@ the result's `placeholders` and the handoff.
 | `usage:` | `feature` missing |
 | `blocked: planning failed` | Plan agent returned nothing |
 | `blocked: the event contract is incomplete` | Lists event fields to request from the gameplay-programmer |
+| `blocked: "..." is shader-only work` | Backdrop whose work is only the shader's look; it belongs to the technical-artist's `author-shader` |
 | `blocked: build agent returned nothing` | No changes confirmed |
 | `blocked: fix agent returned nothing` / `blocked after N fix rounds` | Lists open blockers; nothing proceeds to docs |
 | `blocked: docs agent returned nothing` / `blocked: docs check failed` | Work not done without docs |

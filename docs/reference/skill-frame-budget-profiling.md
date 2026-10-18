@@ -6,7 +6,7 @@
 |---|---|
 | Type | Skill |
 | File | [`skills/frame-budget-profiling/SKILL.md`](../../skills/frame-budget-profiling/SKILL.md) |
-| Loaded when | use when setting frame-time budgets, profiling CPU or GPU cost, chasing stutter, hitches or a frame-rate regression, or before claiming any presentation work is fast enough. |
+| Loaded when | use when setting frame-time or count budgets (draw calls, triangles, memory), profiling CPU or GPU cost, chasing stutter, hitches or a frame-rate regression, or before claiming any presentation work is fast enough. |
 
 ## Inputs
 
@@ -14,7 +14,7 @@ Target frame rates and device tiers; a release-like build; target hardware.
 
 ## Outputs
 
-Budgets in ms and sub-budgets per tier; repeatable scenario; before/after reports with median, p95, p99, bound side. On a backend with no GPU timing (e.g. Metal): `gpu_timing: unavailable`, budgets judged on total frame time (uncapped where possible), GPU cost from the platform GPU profiler, bound side marked inferred.
+Budgets in ms and sub-budgets per tier; repeatable scenario; before/after reports with median, p95, p99, bound side. On a backend with no GPU timing (e.g. Metal): `gpu_timing: unavailable`, budgets judged on total frame time (uncapped where possible), GPU cost from the platform GPU profiler, bound side marked inferred. Count budgets (draw calls, triangles, memory): totals split by render pass or memory category, counted on a device or a software renderer with the target's settings; never a time from a software renderer.
 
 ## Quality bar
 
@@ -29,4 +29,4 @@ Reference (budgets, scenario); how-to (profiling procedure); explanation (trade-
 
 ## Related
 
-[Skills index](index.md#skills) · [Agent](agent.md) · [About the role](../explanation/about-the-role.md)
+[Skills index](index.md#skills) · [investigate-frame-time](workflow-investigate-frame-time.md) · [investigate-render-budget](workflow-investigate-render-budget.md) · [Agent](agent.md) · [About the role](../explanation/about-the-role.md)

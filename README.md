@@ -4,8 +4,8 @@ A Claude Code role plugin for the **graphics programmer** job function: the
 person who makes a game readable, responsive and smooth on every target, from
 low-end phones to desktop and the browser. It covers scene composition,
 cameras, presenting game events as animation (kept separate from game
-logic), input across mouse, touch and controller, frame-time budgets and
-CPU/GPU profiling, scaling across devices, rendering for web builds,
+logic), input across mouse, touch and controller, frame-time and count
+budgets (draw calls, triangles, memory) and CPU/GPU profiling, scaling across devices, rendering for web builds,
 building benchmarks and acceptance checks, and rendering on machines with
 no GPU such as cloud containers and CI.
 
@@ -28,10 +28,11 @@ different need.
 - **Learning the plugin?** Start with the tutorial
   [Build your first presented event](docs/tutorials/first-task.md). It walks
   one event from contract to measured, documented animation.
-- **Doing a job?** The how-to guides cover the six workflows and two common
+- **Doing a job?** The how-to guides cover the seven workflows and two common
   tasks:
   [present a game feature](docs/how-to/how-to-present-a-game-feature.md),
   [fix a frame-time problem](docs/how-to/how-to-fix-a-frame-time-problem.md),
+  [bring a scene within a count budget](docs/how-to/how-to-bring-a-scene-within-a-count-budget.md),
   [check work before marking it done](docs/how-to/how-to-check-work-before-marking-it-done.md),
   [set frame budgets for device tiers](docs/how-to/how-to-set-frame-budgets-for-device-tiers.md),
   [decide rendering features for quality tiers](docs/how-to/how-to-decide-rendering-features-for-quality-tiers.md),

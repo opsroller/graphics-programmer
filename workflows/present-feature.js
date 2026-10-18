@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 export const meta = {
   name: 'present-feature',
-  description: 'Build the presentation for a game feature end to end: plan scene, camera, event-to-animation beats, input actions, look-dev frames, measurement and placeholder art, capture before frames, implement, capture after frames, check feel, input, readability (against the project\'s visual acceptance checks when it has them), look, art hookup and frame time on each target in parallel, fix, document in the same PR, and push it as a handoff for engineering-practices deliver-package or land-pr. Perf with no device can be deferred to a named benchmark or measurement package as a follow-up. Use when a feature already has a design spec and logic events. args: { feature: "short name, e.g. item pickup", spec?: "path to the design spec", targets?: ["weakest supported phone", "desktop"], capture?: true, perf?: { defer_to?: "<benchmark or measurement package that will measure it>", hook?: "<existing measurement command or scene>" } }',
+  description: 'Build the presentation for a game feature end to end: plan scene, camera, event-to-animation beats, input actions, look-dev frames, measurement and placeholder art, capture before frames, implement, capture after frames, check feel, input, readability (against the project\'s visual acceptance checks when it has them), look, art hookup and frame time on each target in parallel, fix, document in the same PR, and push it as a handoff for engineering-practices deliver-package or land-pr. Perf with no device can be deferred to a named benchmark or measurement package as a follow-up. Use when a feature already has a design spec and logic events; kind "backdrop" presents a non-interactive background element driven by time instead (no events or input; a check that it does not compete with foreground play). args: { feature: "short name, e.g. item pickup", spec?: "path to the design spec", kind?: "event" | "backdrop", targets?: ["weakest supported phone", "desktop"], capture?: true, perf?: { defer_to?: "<benchmark or measurement package that will measure it>", hook?: "<existing measurement command or scene>" } }',
   phases: [
     { title: 'Plan', detail: 'presentation plan, look-dev frames, measurement, placeholder art and docs plan (compass)' },
     { title: 'Before', detail: 'capture the look-dev frames on the base commit (technical-artist lookdev-capture, headless-rendering)' },
@@ -107,12 +107,13 @@ if (RUN.error) return RUN.error
 const RUN_OUT = await Promise.race([RUN.halted, (async (agent, phase, log) => {
 // --- run-modes v2 end (workflow body follows; close it with the tail line) ---
 
-const USAGE = 'usage: present-feature { feature: "short name", spec?: "path/to/spec.md", targets?: ["weakest supported phone", "desktop"], capture?: true, perf?: { defer_to?: "<benchmark or measurement package>", hook?: "<existing measurement command or scene>" } }'
+const USAGE = 'usage: present-feature { feature: "short name", spec?: "path/to/spec.md", kind?: "event" | "backdrop", targets?: ["weakest supported phone", "desktop"], capture?: true, perf?: { defer_to?: "<benchmark or measurement package>", hook?: "<existing measurement command or scene>" } }'
 if (!args || !args.feature) return USAGE
 const feature = args.feature
 const spec = args.spec ? `The design spec is at ${args.spec}.` : 'Find the design spec for this feature through the project profile; if none exists, stop and say so.'
 const targets = Array.isArray(args.targets) && args.targets.length ? args.targets : ['the weakest supported device in the project profile', 'desktop']
 const wantCapture = args.capture !== false
+const backdrop = args.kind === 'backdrop'
 const perfArg = args.perf && typeof args.perf === 'object' ? args.perf : {}
 const strings = (v) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string' && x.trim()).map(String) : [])
 
@@ -170,6 +171,7 @@ const PLAN = {
     naming: { type: 'string', description: 'the placeholder naming convention used (project convention plus placeholder marker)' },
     docsPlan: { type: 'array', items: { type: 'string' }, description: 'each entry: kind + page path + what changes' },
     missing: { type: 'array', items: { type: 'string' }, description: 'contract gaps that block the work' },
+    shader_only: { type: 'boolean', description: 'backdrop only: true when the work is only the shader look, with nothing to wire into scene, layers, settings or budget' },
   },
   required: ['events', 'beats', 'files', 'lookdev', 'acceptance', 'placeholders', 'docsPlan', 'missing'],
 }
@@ -189,7 +191,7 @@ phase('Plan')
 const plan = await agent(
   `You are the graphics-programmer. Onboard first (engineering-practices project-onboarding). Plan the presentation of "${feature}". ${spec}
 Follow the graphics-programmer skills event-presentation (event contract, event-to-beat table), scene-composition, camera-systems, input-handling and frame-budget-profiling. Targets: ${targets.join('; ')}.
-List the logic events you will consume and any data they lack (put contract gaps in "missing"; never plan to read live logic state). List the files you will change.
+${backdrop ? 'This is a backdrop: a non-interactive environment or background element driven by time, not by game events. Consume no logic events and map no input (leave events and inputActions empty, and missing empty unless the spec lacks what the look needs). In beats, give its time-driven motion from the spec (loop period, speeds, parameters) and the fixed times across the loop to capture. Plan its layer and draw order behind the play area, its time source (the presentation clock, paused with the game), a reduced-motion setting, a cheaper or static fallback per quality tier, and its full-screen cost. When the work is only the shader\'s look, with nothing to wire into scene, layers, settings or budget, set shader_only true: that work belongs to technical-artist author-shader.' : 'List the logic events you will consume and any data they lack (put contract gaps in "missing"; never plan to read live logic state).'} List the files you will change.
 Look-dev frames${wantCapture ? '' : ' (capture is off for this run; set lookdev.possible false with why "capture: false")'}: plan them with the technical-artist lookdev-capture skill (what to frame and judge) and the graphics-programmer headless-rendering skill (getting frames out of a machine with no GPU or display). Frame the gameplay camera on the feature's key beats held at fixed times (for example the start, peak and settle of each beat), in the scene the feature plays in, on every renderer or quality tier the project ships. Give the capture command, size, frame and output directory. Set possible false with the reason only if the project or this machine cannot render after following headless-rendering.
 Visual acceptance: find the project's automated visual acceptance checks (its visual target, checks built with technical-artist calibrate-visual-checks or graphics-programmer build-measurement-tool) and the command that runs them on frames; list the readability criteria that apply to this feature. Set exists false if the project has none.
 Measurement: name an existing measurement hook the perf checks can run for this feature (benchmark scene, frame-time capture command, profiler markers), any markers or timers this work adds around the feature's update and draw, and the benchmark or measurement package that measures it on the real targets when no device is reachable here${perfArg.defer_to ? ` (the caller names "${perfArg.defer_to}")` : ''}${perfArg.hook ? `; the caller names the hook "${perfArg.hook}"` : ''}. Leave a field empty when none exists; never invent one.
@@ -198,6 +200,7 @@ Docs plan: ${DOCS_FRAGMENT} Here only plan: list each page (kind, path, change).
   { schema: PLAN, phase: 'Plan', label: 'plan' },
 )
 if (!plan) return 'blocked: planning failed (no plan returned)'
+if (backdrop && plan.shader_only === true) return `blocked: "${feature}" is shader-only work (the look, with nothing to wire into scene, layers, settings or budget); it belongs to the technical-artist: /technical-artist:author-shader`
 if (plan.missing && plan.missing.length) return `blocked: the event contract is incomplete; ask the gameplay-programmer for:\n- ${plan.missing.join('\n- ')}`
 
 const look = plan.lookdev || { possible: false }
@@ -222,7 +225,7 @@ if (capturing) {
 
 phase('Build')
 const built = await agent(
-  `You are the graphics-programmer. Implement this presentation plan for "${feature}" exactly, following the skills event-presentation, scene-composition, camera-systems, input-handling and frame-budget-profiling. Logic must never wait on animation; timings live in data; skip and reduced motion must give the same final state.
+  `You are the graphics-programmer. Implement this presentation plan for "${feature}" exactly, following the skills event-presentation, scene-composition, camera-systems, input-handling and frame-budget-profiling. Logic must never wait on animation; timings live in data; skip and reduced motion must give the same final state.${backdrop ? ' The backdrop reads no game state or events: drive it from the presentation clock, paused with the game, with its parameters in data.' : ''}
 Load every visual asset by its manifest key, never by path. Create each planned placeholder (simple, clearly temporary, with the bounds, pivot, slots and names the plan says final art must keep), name it by the convention "${plan.naming || '<key>.placeholder.<ext>'}", and register it in its manifest marked as a placeholder. Add the planned measurement markers or timers.
 Plan: ${JSON.stringify(plan)}
 Commit on the work-package branch following engineering-practices git-workflow. Return a short summary of files changed.`,
@@ -231,7 +234,7 @@ Commit on the work-package branch following engineering-practices git-workflow. 
 if (!built) return 'blocked: build agent returned nothing; no changes are confirmed'
 
 const readabilityTask = (frames) => {
-  const base = 'Check the readable set at the smallest supported resolution and the narrowest and widest aspect ratios, inside safe areas, in grayscale. Skills: scene-composition, camera-systems.'
+  const base = `Check the readable set at the smallest supported resolution and the narrowest and widest aspect ratios, inside safe areas, in grayscale.${backdrop ? ' The backdrop must not compete with foreground play: at every captured time the play pieces and their states read over it, it stays lower in contrast and saturation than the play area, and no motion or highlight in it draws the eye into the play area.' : ''} Skills: scene-composition, camera-systems.`
   if (!frames.length && !wantCapture) return `${base} Capture is off for this run, so judge from the scene and code and set measured=true.`
   if (!frames.length) return `${base} No look-dev frames were captured, so judge from the scene and code and set measured=false.`
   const auto = acceptance.exists
@@ -239,7 +242,7 @@ const readabilityTask = (frames) => {
     : `The project has no automated visual acceptance checks; judge by eye on these frames and their greyscale copies: ${JSON.stringify(frames)}, and say in minor that the criteria are unchecked by script.`
   return `${base} ${auto} Criteria: ${JSON.stringify(strings(acceptance.criteria))}. Set measured=true. Skill: technical-artist visual-acceptance-checks.`
 }
-const perfTask = (t) => `Measure frame time (median, p95, p99) for the feature on ${t} in a release-like build against the project budget. ${hook ? `Use the measurement hook: ${hook}. ` : ''}Frame times from a software renderer or a container are not device numbers (headless-rendering skill): report them, but set measured=false. If no device or build is available, estimate from the scene and code, put the estimate in minor and set measured=false. If the backend reports no GPU timing (e.g. Metal, some web and mobile drivers), record gpu_timing unavailable: CPU frame time then includes the drawable, vsync or present wait, so judge the budget on total frame time (uncapped where possible), take GPU cost from the platform GPU profiler if reachable, and mark the bound side as inferred. Skill: frame-budget-profiling.`
+const perfTask = (t) => `Measure frame time (median, p95, p99) for the feature on ${t} in a release-like build against the project budget.${backdrop ? ' For the backdrop, include its full-screen fragment cost and overdraw at the highest supported resolution, and each quality tier\'s fallback.' : ''} ${hook ? `Use the measurement hook: ${hook}. ` : ''}Frame times from a software renderer or a container are not device numbers (headless-rendering skill): report them, but set measured=false. If no device or build is available, estimate from the scene and code, put the estimate in minor and set measured=false. If the backend reports no GPU timing (e.g. Metal, some web and mobile drivers), record gpu_timing unavailable: CPU frame time then includes the drawable, vsync or present wait, so judge the budget on total frame time (uncapped where possible), take GPU cost from the platform GPU profiler if reachable, and mark the bound side as inferred. Skill: frame-budget-profiling.`
 
 let round = 0
 let open = []
@@ -258,8 +261,10 @@ while (true) {
     frames = after ? strings(after.frames) : []
   }
   const checks = [
-    ['feel', 'Compare every beat\'s timing and easing with the feel targets in the spec; check skip, fast-forward and reduced motion leave the view equal to logic state. Skill: event-presentation.'],
-    ['input', 'Check every input action on every supported device family, including cancel, focus loss and disconnect; check touch target sizes and picking during camera motion. Skill: input-handling.'],
+    backdrop
+      ? ['feel', 'Compare the backdrop\'s motion (loop period, speeds, parameters) with the spec; check it loops with no visible seam, pauses with the game, stills or slows under reduced motion, and reads no game state or events. Skill: event-presentation.']
+      : ['feel', 'Compare every beat\'s timing and easing with the feel targets in the spec; check skip, fast-forward and reduced motion leave the view equal to logic state. Skill: event-presentation.'],
+    ...(backdrop ? [] : [['input', 'Check every input action on every supported device family, including cancel, focus loss and disconnect; check touch target sizes and picking during camera motion. Skill: input-handling.']]),
     ['readability', readabilityTask(frames)],
     ...(frames.length ? [['look', `Give an independent look review. Open every frame and its greyscale copy (technical-artist lookdev-capture skill, "Judge"). Before frames: ${JSON.stringify(before ? strings(before.frames) : [])}. After frames: ${JSON.stringify(frames)}. Compare before and after from the same camera; check each beat against the spec and the project's art direction and visual target: the feature reads at game speed, nothing washed out, too dark, blown out, noisy or aliased, and higher tiers add to the base look rather than change what reads. A software-rendered frame judges values and readability, not GPU-only features; say which those are in minor. Set measured=true.`]] : []),
     ...(placeholders.length ? [['art hookup', `Check the placeholder art can be replaced without code changes. Placeholders: ${JSON.stringify(placeholders)}. Every visual asset of the feature is loaded by manifest key, never by path; every placeholder is registered in its manifest, marked as a placeholder and named by the convention "${plan.naming || '<key>.placeholder.<ext>'}"; what final art must keep (bounds, pivot, slots, names) is documented. Read the loading code; set measured=true.`]] : []),
