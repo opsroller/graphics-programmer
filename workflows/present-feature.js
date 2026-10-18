@@ -76,6 +76,7 @@ const checks = [
 let round = 0
 let open = []
 let unverified = []
+let estimated = []
 while (true) {
   phase('Verify')
   const results = await parallel(checks.map(([area, task]) => () =>
@@ -83,7 +84,7 @@ while (true) {
       { schema: FINDINGS, phase: 'Verify', label: area }).then((r) => (r ? { ...r, area } : { area, crashed: true }))))
   unverified = results.filter((r) => r.crashed).map((r) => r.area)
   open = results.filter((r) => !r.crashed).flatMap((r) => r.blockers.map((b) => `${r.area}: ${b}`))
-  const estimated = results.filter((r) => !r.crashed && r.measured === false).map((r) => r.area)
+  estimated = results.filter((r) => !r.crashed && r.measured === false).map((r) => r.area)
   if (estimated.length) log(`estimated, not measured: ${estimated.join(', ')}`)
   if (!open.length || round >= 2) break
   round += 1
@@ -110,7 +111,10 @@ const check = await agent(
   `Review the docs pages touched for "${feature}" (read only). Check: each page holds one Diataxis kind only; nothing instructional in reference or explanation; how-to titles name a user goal and explanation titles read "About ..."; reference structure matches the code; pages link to the related pages of the other kinds; every user-visible change from this work is documented. Docs report: ${docs}`,
   { schema: DOCCHECK, phase: 'Docs check', label: 'docs check' },
 )
-if (!check) return `docs unverified (checker returned nothing). Build: ${built}\nDocs: ${docs}`
+if (!check) return `unverified: docs checker returned nothing. Build: ${built}\nDocs: ${docs}`
 if (!check.ok) return `blocked: docs check failed:\n- ${check.problems.join('\n- ')}`
 
-return `done: presentation for "${feature}" built, verified and documented.${unverified.length ? `\nunverified checks: ${unverified.join(', ')}` : ''}\nBuild: ${built}\nDocs: ${docs}`
+if (unverified.length || estimated.length) {
+  return `unverified: presentation for "${feature}" built and documented, but not fully verified.${unverified.length ? `\nchecks that returned nothing: ${unverified.join(', ')}` : ''}${estimated.length ? `\nestimated, not measured: ${estimated.join(', ')}` : ''}\nRerun the missing checks before marking it done.\nBuild: ${built}\nDocs: ${docs}`
+}
+return `done: presentation for "${feature}" built, verified and documented.\nBuild: ${built}\nDocs: ${docs}`

@@ -39,10 +39,10 @@ Missing `feature` returns the usage string.
 | `blocked: build agent returned nothing` | No changes confirmed |
 | `blocked: fix agent returned nothing` / `blocked after N fix rounds` | Lists open blockers; nothing proceeds to docs |
 | `blocked: docs agent returned nothing` / `blocked: docs check failed` | Work not done without docs |
-| `docs unverified` | Docs written; checker returned nothing |
-| `done:` | Built, verified, documented; lists unverified checks if any |
+| `unverified:` | Built and documented, but a Verify check returned nothing, a perf check was estimated rather than measured, or the docs checker returned nothing; lists which |
+| `done:` | Built, every check returned and measured, docs checked |
 
-Checks that crash are reported as unverified, never dropped. Checks without
-device access report `measured=false` and are logged as estimated.
+Any failed or unverified step gives a status other than `done`. Checks that
+crash are listed as unverified, never dropped.
 
 Related: [How to present a game feature](../how-to/how-to-present-a-game-feature.md) · [index](index.md)

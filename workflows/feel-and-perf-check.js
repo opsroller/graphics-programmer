@@ -56,7 +56,7 @@ const report = await agent(
   `Turn these findings into one prioritised fix list, biggest player-visible impact first, each with file and the concrete change. Mark items from estimated (not measured) checks as estimates. Areas not checked: ${unverified.join(', ') || 'none'}.\n${JSON.stringify(done)}`,
   { phase: 'Report', label: 'report' },
 )
-if (!report) return `report failed; raw findings:\n${JSON.stringify(done)}\nunverified: ${unverified.join(', ') || 'none'}`
+if (!report) return `blocked: report failed; raw findings:\n${JSON.stringify(done)}\nunverified: ${unverified.join(', ') || 'none'}`
 
 phase('Docs')
 const docs = await agent(
@@ -74,4 +74,6 @@ if (docs) {
   )
   docsState = !check ? 'docs unverified (checker returned nothing)' : check.ok ? 'docs checked' : `docs problems:\n- ${check.problems.join('\n- ')}`
 }
-return `${report}\n\nunverified areas: ${unverified.join(', ') || 'none'}\nestimated, not measured: ${estimated.join(', ') || 'none'}\n${docsState}`
+const status = docsState.startsWith('docs problems') || docsState.startsWith('docs missing') ? 'blocked'
+  : unverified.length || estimated.length || docsState !== 'docs checked' ? 'unverified' : 'done'
+return `${status}\n\n${report}\n\nunverified areas: ${unverified.join(', ') || 'none'}\nestimated, not measured: ${estimated.join(', ') || 'none'}\n${docsState}`

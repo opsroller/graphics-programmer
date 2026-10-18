@@ -29,9 +29,17 @@ Missing `scope` returns the usage string.
 
 ## Results
 
-The prioritised fix list, followed by: unverified areas (checkers that
-returned nothing), areas estimated rather than measured, and the docs state
-(`docs checked`, `docs problems`, `docs unverified` or `docs missing`). If
-the report agent fails, the raw findings are returned instead.
+A status line, then the prioritised fix list, unverified areas (checkers
+that returned nothing), areas estimated rather than measured, and the docs
+state (`docs checked`, `docs problems`, `docs unverified` or `docs missing`).
+
+| Status | Meaning |
+|---|---|
+| `usage:` | `scope` missing |
+| `blocked:` | Planning or report failed (raw findings returned), docs missing, or docs check found problems |
+| `unverified` | A checker returned nothing, a perf check was estimated, or the docs checker returned nothing |
+| `done` | Every check returned and measured; docs checked |
+
+Any failed or unverified step gives a status other than `done`.
 
 Related: [How to check presentation work before marking it done](../how-to/how-to-check-work-before-marking-it-done.md) · [index](index.md)

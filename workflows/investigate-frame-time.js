@@ -91,21 +91,28 @@ if (missingAreas.length) log(`diagnosers that returned nothing (areas unverified
 const ranked = diag.filter(Boolean)
   .flatMap((d) => d.hypotheses.map((h) => ({ ...h, area: d.area })))
   .sort((a, b) => b.expectedSavingMs - a.expectedSavingMs)
-if (!ranked.length) return `no evidenced cause found. Baseline: ${JSON.stringify(baseline)}${missingAreas.length ? `\nunverified areas: ${missingAreas.join(', ')}` : ''}`
+if (!ranked.length) return `${missingAreas.length ? 'unverified' : 'no evidenced cause found'}: Baseline: ${JSON.stringify(baseline)}${missingAreas.length ? `\nunverified areas: ${missingAreas.join(', ')}` : ''}`
 
 phase('Fix')
 let current = baseline
 const kept = []
 const tried = []
+let measureFailed = false
 for (const h of ranked.slice(0, 3)) {
   if (current.p95Ms <= plan.budgetMs) break
   const applied = await agent(
     `You are the graphics-programmer. Apply exactly this one change, nothing else, following the relevant graphics-programmer skill, and commit it on the work-package branch: ${h.change} (cause: ${h.cause}).`,
     { phase: 'Fix', label: `apply: ${h.area}` },
   )
-  if (!applied) { tried.push(`${h.cause}: not applied (agent returned nothing)`); continue }
+  if (!applied) return `blocked: the apply agent for "${h.change}" returned nothing; check the branch for a partial change before continuing.\nbaseline p95 ${baseline.p95Ms} ms; current p95 ${current.p95Ms} ms`
   const after = await measure(`re-measure: ${h.area}`)
-  if (!after) { tried.push(`${h.cause}: applied but unverified (measurement failed)`); continue }
+  if (!after) {
+    const undone = await agent(`You are the graphics-programmer. Revert the last commit ("${h.change}"); its effect could not be measured. Use a revert commit.`, { phase: 'Fix', label: `revert unmeasured: ${h.area}` })
+    if (!undone) return `blocked: re-measuring "${h.change}" failed and its revert failed; revert it by hand before continuing.\nbaseline p95 ${baseline.p95Ms} ms; current p95 ${current.p95Ms} ms`
+    measureFailed = true
+    tried.push(`${h.cause}: measurement failed, reverted; loop stopped`)
+    break
+  }
   if (after.p95Ms < current.p95Ms) {
     kept.push(`${h.cause}: p95 ${current.p95Ms} -> ${after.p95Ms} ms`)
     current = after
@@ -124,7 +131,7 @@ const docs = await agent(
 ${DOCS_FRAGMENT} Budgets or scenario definitions that changed go in reference; a trade-off decision goes in an explanation. Commit the docs on the same branch.`,
   { phase: 'Docs', label: 'docs' },
 )
-if (!docs) return `docs missing (agent returned nothing); work is not done.\n${summary}`
+if (!docs) return `blocked: docs missing (agent returned nothing); work is not done.\n${summary}`
 
 phase('Docs check')
 const DOCCHECK = { type: 'object', properties: { ok: { type: 'boolean' }, problems: { type: 'array', items: { type: 'string' } } }, required: ['ok', 'problems'] }
@@ -133,5 +140,9 @@ const check = await agent(
   { schema: DOCCHECK, phase: 'Docs check', label: 'docs check' },
 )
 const docsState = !check ? 'docs unverified (checker returned nothing)' : check.ok ? 'docs checked' : `docs problems:\n- ${check.problems.join('\n- ')}`
-const verdict = current.p95Ms <= plan.budgetMs ? 'within budget' : 'blocked: still over budget'
+const gaps = []
+if (measureFailed) gaps.push('a re-measurement failed')
+if (missingAreas.length) gaps.push(`diagnosers returned nothing: ${missingAreas.join(', ')}`)
+if (!check || !check.ok) gaps.push('docs not verified')
+const verdict = current.p95Ms > plan.budgetMs ? 'blocked: still over budget' : gaps.length ? `unverified: within budget, but ${gaps.join('; ')}` : 'within budget'
 return `${verdict}\n${summary}\n${docsState}`

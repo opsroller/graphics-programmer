@@ -34,8 +34,9 @@ args: { feature: "item pickup", spec: "docs/reference/specs/item-pickup.md", tar
   for the listed fields, then run again.
 - `blocked after N fix rounds`: fix the listed blockers by hand or rerun
   after design changes.
-- Lines marked *estimated, not measured* mean no device was reachable;
-  measure on the device before merging (see
+- `unverified:` a check returned nothing or a perf check was estimated
+  because no device was reachable. Rerun the listed checks, or measure on
+  the device, before merging (see
   [How to fix a frame-time problem](how-to-fix-a-frame-time-problem.md)).
 
 See the [present-feature reference](../reference/workflow-present-feature.md)

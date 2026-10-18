@@ -18,6 +18,9 @@ args: { scope: "feat/item-pickup", targets: ["low-tier phone", "desktop", "web b
 
 ## Read the result
 
+- The first line is the status: `done` only if every check returned, every
+  perf number was measured and the docs check passed; otherwise
+  `unverified` or `blocked`.
 - The fix list is ordered by player-visible impact. Fix blockers before
   asking for review.
 - Items marked as estimates were not measured on a device; measure them

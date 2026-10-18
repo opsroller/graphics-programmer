@@ -27,7 +27,12 @@ args: { symptom: "drops below 30 fps when the settings menu opens", target: "low
   remaining causes.
 - `blocked: no ... device or release-like build is reachable`: get a
   device or a build first; numbers from an editor do not count.
-- `unverified areas`: a diagnoser failed; rerun or check that area by hand.
+- `unverified: within budget, but ...`: the numbers look good but a step
+  failed (a re-measure, a diagnoser, or the docs check). A change whose
+  re-measure failed has already been reverted. Rerun, or check the listed
+  step by hand, before opening the PR.
+- `blocked: the apply agent ... returned nothing`: inspect the branch for a
+  partial change before running again.
 
 ## If you need to profile by hand
 
