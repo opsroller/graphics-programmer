@@ -26,7 +26,7 @@ different need.
 - **Learning the plugin?** Start with the tutorial
   [Build your first presented event](docs/tutorials/first-task.md). It walks
   one event from contract to measured, documented animation.
-- **Doing a job?** The how-to guides cover the three workflows and two common
+- **Doing a job?** The how-to guides cover the four workflows and two common
   tasks:
   [present a game feature](docs/how-to/how-to-present-a-game-feature.md),
   [fix a frame-time problem](docs/how-to/how-to-fix-a-frame-time-problem.md),
