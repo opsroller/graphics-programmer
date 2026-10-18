@@ -52,7 +52,7 @@ any other part holding a quarter or more of its total (at most three).
 | Diagnose | 1 per dominant part, parallel | no | Evidenced causes with expected saving in `unit`; flags changes the player can see |
 | Fix | up to 3 rounds of apply + re-count on every target (+ revert) | yes, one agent at a time | Highest expected saving first; keeps a change only if the worst target drops and no target rises; reverts and stops if a re-count fails; stops once every target is within budget |
 | Docs | 1 | yes | Planned Diataxis pages with counts, renderer, settings and breakdown |
-| Docs check | 1 to 5 | fixes only | Up to three independent checks and two fixes; each re-check covers every page touched, pages added by fixes included |
+| Docs check | 1 to 5 | fixes only | Up to three independent checks and two fixes, only while a blocking issue remains; each re-check covers every page touched, pages added by fixes included, and confirms the last check's issues and anything a fix left (left items keep their severity); minor issues go to notes, blocking ones left at the end block |
 | Handoff | 1 | yes | Commits and pushes the branch (cut from the default branch if needed), runs the project's checks on the pushed head; opens no PR |
 
 ## Results

@@ -257,25 +257,43 @@ if (!docs) return `blocked: docs missing (agent returned nothing); work is not d
 phase('Docs check')
 // The check only reads, so it stays independent of the docs it judges;
 // fixes are their own step, followed by a fresh check of every page touched
-// so far. Up to three checks and two fixes; minor issues left go to notes.
+// so far. Up to three checks and two fixes, only while a blocking issue
+// remains; minor issues go to notes, blocking ones left at the end block.
 const DOCCHECK = { type: 'object', properties: { issues: { type: 'array', items: { type: 'object', properties: {
   page: { type: 'string' }, problem: { type: 'string' }, severity: { type: 'string', enum: ['blocking', 'minor'] },
 }, required: ['problem', 'severity'] } } }, required: ['issues'] }
-const DOCFIX = { type: 'object', properties: { pages: { type: 'array', items: { type: 'string' } }, left: { type: 'array', items: { type: 'string' } } }, required: ['pages'] }
+const DOCFIX = { type: 'object', properties: { pages: { type: 'array', items: { type: 'string' } }, left: { type: 'array', items: { type: 'object', properties: { page: { type: 'string' }, problem: { type: 'string' }, severity: { type: 'string', enum: ['blocking', 'minor'] } }, required: ['problem', 'severity'] } } }, required: ['pages'] }
 const checkPrompt = (fixed) => `Review the docs pages touched by this ${metric} investigation. Docs report: ${JSON.stringify(docs)}${fixed.length ? `\nPages touched by fixes since: ${JSON.stringify(fixed)}` : ''}\nCheck every one of those pages: one Diataxis kind per page; reference states facts only; how-to titles name a user goal and explanation titles read "About ..."; pages link to related pages of the other kinds; recorded counts carry target, renderer and settings, and no software-renderer time appears. Give each issue the page, the problem and a severity: blocking when a page mixes kinds, is missing, has a broken link or states a wrong number; minor for wording, a title that could follow the pattern more closely, or a cross-link a reader can do without. Read-only: do not edit anything; return every issue.`
 const text = (i) => (i.page ? `${i.page}: ${i.problem}` : i.problem)
+const asIssue = (i) => (typeof i === 'string' ? { problem: i, severity: 'blocking' } : { severity: 'blocking', ...i })
+// A left item keeps the severity of the issue it came from (a plain string
+// counts as blocking), and is prefixed once however often it is left.
+const LEFT = 'left by the docs fix (needs a content decision): '
+const leftIssue = (l) => { const i = asIssue(l); return { ...i, severity: i.severity === 'minor' ? 'minor' : 'blocking', problem: String(i.problem || '').startsWith(LEFT) ? i.problem : LEFT + (i.problem || '') } }
+const unique = (list) => list.filter((i, n) => list.findIndex((j) => text(j) === text(i)) === n)
+// Each re-check is told what the last check found and what the fix left, so
+// it confirms those instead of judging the pages afresh; a left item stays
+// in the list whatever the re-check says.
+const priorLine = (prior) => (prior.length ? `\nThe last check found these issues and a fix step has tried to close them; confirm each against the pages now and report any still present, with its severity, alongside anything new:\n- ${prior.map(text).join('\n- ')}` : '')
 let fixed = []
 let issues = []
+let prior = []
+let left = []
+let leftAll = []
 let checked = false
 for (let r = 1; r <= 3; r++) {
-  const c = await agent(checkPrompt(fixed), { schema: DOCCHECK, phase: 'Docs check', label: r === 1 ? 'docs check' : `docs recheck:${r - 1}`, independent: true })
+  const c = await agent(checkPrompt(fixed) + priorLine(prior), { schema: DOCCHECK, phase: 'Docs check', label: r === 1 ? 'docs check' : `docs recheck:${r - 1}`, independent: true })
   if (!c) { checked = false; break }
   checked = true
-  issues = (c.issues || []).map((i) => (typeof i === 'string' ? { problem: i, severity: 'blocking' } : { severity: 'blocking', ...i }))
-  if (!issues.length || r === 3) break
-  const fix = await agent(`You are the graphics-programmer. Fix these documentation problems with the smallest edits, touching only the pages they name (add a page only when an issue says one is missing); leave anything that needs a content decision. Commit on the same branch as the work:\n- ${issues.map(text).join('\n- ')}\nReturn pages: every page you edited or added, and left: any issue you did not fix, with why.`, { schema: DOCFIX, phase: 'Docs check', label: `docs fix:${r}` })
+  issues = unique([...(c.issues || []).map(asIssue), ...left])
+  // Minor-only results need no fix and no re-check: they go to the notes.
+  if (!issues.some((i) => i.severity !== 'minor') || r === 3) break
+  const fix = await agent(`You are the graphics-programmer. Fix these documentation problems with the smallest edits, touching only the pages they name (add a page only when an issue says one is missing); leave anything that needs a content decision. Commit on the same branch as the work:\n- ${issues.map((i) => `${text(i)} [${i.severity}]`).join('\n- ')}\nReturn pages: every page you edited or added, and left: any issue you did not fix, with why in its problem and the severity it was given here.`, { schema: DOCFIX, phase: 'Docs check', label: `docs fix:${r}` })
   if (!fix) break
   fixed = [...new Set([...fixed, ...(fix.pages || [])])]
+  left = unique((fix.left || []).map(leftIssue))
+  leftAll = unique([...leftAll, ...left])
+  prior = unique([...issues, ...leftAll])
 }
 const blocking = issues.filter((i) => i.severity !== 'minor').map(text)
 const docMinor = issues.filter((i) => i.severity === 'minor').map(text)
