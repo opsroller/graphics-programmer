@@ -43,7 +43,8 @@ notes point at `/graphics-programmer:build-measurement-tool`.
 
 | Field | Meaning |
 |---|---|
-| `target`, `scene`, `tier`, `resolution` | What was run |
+| `target` | Exactly one of the `targets` strings (schema enum), so each row reaches that target's perf check; the hardware is in `device` |
+| `scene`, `tier`, `resolution` | What was run |
 | `device`, `backend`, `driver` | Where it ran |
 | `gpu_timing` | `available`, or `unavailable` when the backend reports no GPU timing (e.g. Metal); CPU frame time then includes the drawable or vsync wait |
 | `runs` | Runs averaged into the row |
